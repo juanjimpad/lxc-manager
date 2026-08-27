@@ -83,13 +83,17 @@ def audit_all_guests() -> None:
         run_audit(vmid)
 
 
-def evaluate(check) -> dict:
+def evaluate(check, *, require_sudo_locked: bool = True) -> dict:
     """Turn a raw security_checks row into display-ready fields: values
     plus a pass/fail flag per field and one overall_ok. `ssh_active`,
     `authorized_keys_files` and `listening_ports` are informational only
     (their presence/absence isn't itself good or bad) and don't count
     toward overall_ok — only password_auth, permit_root_login, fail2ban
-    and sudo_nopasswd_lines do."""
+    and sudo_nopasswd_lines do.
+
+    For VMs updated via direct SSH (`VM_GUESTS`), passwordless sudo for
+    apt/sshd is required by lxc-manager — `require_sudo_locked=False`
+    keeps the sudo line visible but excludes it from overall_ok."""
     if check is None:
         return {"checked": False}
 
@@ -100,6 +104,10 @@ def evaluate(check) -> dict:
     fail2ban_ok = check["fail2ban"] == "active"
     sudo_ok = (check["sudo_nopasswd_lines"] or 0) == 0
     authorized_keys_ok = (check["authorized_keys_files"] or 0) > 0
+
+    overall_bits = [password_auth_ok, permit_root_ok, fail2ban_ok, authorized_keys_ok]
+    if require_sudo_locked:
+        overall_bits.append(sudo_ok)
 
     return {
         "checked": True,
@@ -116,12 +124,13 @@ def evaluate(check) -> dict:
         "sudo_nopasswd_lines": check["sudo_nopasswd_lines"],
         "sudo_ok": sudo_ok,
         "listening_ports": check["listening_ports"],
-        "overall_ok": (
-            password_auth_ok and permit_root_ok and fail2ban_ok
-            and sudo_ok and authorized_keys_ok
-        ),
+        "overall_ok": all(overall_bits),
     }
 
 
 def get_evaluated(vmid: int) -> dict:
-    return evaluate(get_cached_check(vmid))
+    from ...core import config
+    return evaluate(
+        get_cached_check(vmid),
+        require_sudo_locked=vmid not in config.VM_GUESTS,
+    )
