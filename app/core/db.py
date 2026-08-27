@@ -1,0 +1,159 @@
+import sqlite3
+from contextlib import contextmanager
+
+from . import config
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS guests (
+    vmid INTEGER PRIMARY KEY,
+    node TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,          -- lxc | qemu
+    app_type TEXT NOT NULL,
+    tags TEXT NOT NULL,
+    maxmem INTEGER NOT NULL DEFAULT 0,   -- bytes, assigned
+    maxcpu INTEGER NOT NULL DEFAULT 0,   -- cores, assigned
+    ip TEXT NOT NULL DEFAULT '',
+    os_family TEXT NOT NULL DEFAULT 'unknown',  -- linux | windows | other | unknown
+    os_id TEXT NOT NULL DEFAULT 'unknown',      -- debian | ubuntu | windows | …
+    update_supported INTEGER NOT NULL DEFAULT 0,  -- 1 = safe to run package updates
+    last_seen TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS schedules (
+    vmid INTEGER PRIMARY KEY,
+    cron TEXT NOT NULL,          -- standard 5-field cron
+    enabled INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (vmid) REFERENCES guests(vmid)
+);
+
+CREATE TABLE IF NOT EXISTS runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vmid INTEGER NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    status TEXT NOT NULL,        -- running | ok | failed
+    summary TEXT,
+    detail TEXT,
+    FOREIGN KEY (vmid) REFERENCES guests(vmid)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- security module: always cached, never fetched on every visit to the
+-- guest page (unlike the kernel, which is live). Filled in on "Check
+-- now" or the scheduler's weekly sweep.
+CREATE TABLE IF NOT EXISTS security_checks (
+    vmid INTEGER PRIMARY KEY,
+    checked_at TEXT NOT NULL,
+    ssh_active TEXT,
+    password_auth TEXT,
+    permit_root_login TEXT,
+    authorized_keys_files INTEGER,
+    fail2ban TEXT,
+    sudo_nopasswd_lines INTEGER,
+    listening_ports TEXT,
+    raw TEXT,
+    FOREIGN KEY (vmid) REFERENCES guests(vmid)
+);
+
+-- backups module: one Proxmox API call per PBS storage (no SSH),
+-- refreshed hourly by the scheduler, plus "Back up now" on demand.
+-- PK is (vmid, storage) so each PBS backend gets its own row; a new
+-- storage discovered at sync time just inserts more rows. last_backup_at
+-- NULL means no backup was ever found for this guest on that storage.
+CREATE TABLE IF NOT EXISTS backup_status (
+    vmid INTEGER NOT NULL,
+    storage TEXT NOT NULL,
+    checked_at TEXT NOT NULL,
+    last_backup_at TEXT,
+    last_backup_size INTEGER,
+    verification TEXT,
+    PRIMARY KEY (vmid, storage),
+    FOREIGN KEY (vmid) REFERENCES guests(vmid)
+);
+
+-- On-demand "Back up now" history (same shape as update `runs`).
+-- Scheduled PBS jobs outside this app are not recorded here.
+CREATE TABLE IF NOT EXISTS backup_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vmid INTEGER NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    status TEXT NOT NULL,        -- running | ok | failed
+    summary TEXT,
+    detail TEXT,
+    FOREIGN KEY (vmid) REFERENCES guests(vmid)
+);
+"""
+
+
+@contextmanager
+def get_conn():
+    conn = sqlite3.connect(config.DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+MIGRATIONS = [
+    "ALTER TABLE guests ADD COLUMN maxmem INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE guests ADD COLUMN maxcpu INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE guests ADD COLUMN ip TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE guests ADD COLUMN os_family TEXT NOT NULL DEFAULT 'unknown'",
+    "ALTER TABLE guests ADD COLUMN os_id TEXT NOT NULL DEFAULT 'unknown'",
+    "ALTER TABLE guests ADD COLUMN update_supported INTEGER NOT NULL DEFAULT 0",
+]
+
+
+def _migrate_backup_status_per_storage(conn: sqlite3.Connection) -> None:
+    """Old schema had vmid as the sole PK (one row = one guest on the
+    single hard-coded unraid-pbs). Rebuild with (vmid, storage) and
+    attribute existing rows to PBS_STORAGE so nothing is lost on upgrade."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(backup_status)").fetchall()}
+    if not cols:
+        return  # CREATE TABLE in SCHEMA just made the new shape
+    if "storage" in cols:
+        return
+    conn.execute(
+        """CREATE TABLE backup_status_new (
+               vmid INTEGER NOT NULL,
+               storage TEXT NOT NULL,
+               checked_at TEXT NOT NULL,
+               last_backup_at TEXT,
+               last_backup_size INTEGER,
+               verification TEXT,
+               PRIMARY KEY (vmid, storage),
+               FOREIGN KEY (vmid) REFERENCES guests(vmid)
+           )"""
+    )
+    conn.execute(
+        """INSERT INTO backup_status_new
+             (vmid, storage, checked_at, last_backup_at, last_backup_size, verification)
+           SELECT vmid, ?, checked_at, last_backup_at, last_backup_size, verification
+           FROM backup_status""",
+        (config.PBS_STORAGE,),
+    )
+    conn.execute("DROP TABLE backup_status")
+    conn.execute("ALTER TABLE backup_status_new RENAME TO backup_status")
+
+
+def init_db():
+    with get_conn() as conn:
+        conn.executescript(SCHEMA)
+        for stmt in MIGRATIONS:
+            try:
+                conn.execute(stmt)
+            except sqlite3.OperationalError as exc:
+                if "duplicate column" not in str(exc):
+                    raise
+        _migrate_backup_status_per_storage(conn)

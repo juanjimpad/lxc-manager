@@ -1,0 +1,12 @@
+[lxcmanager-auth]
+enabled  = true
+backend  = systemd
+journalmatch = _SYSTEMD_UNIT=lxc-manager.service
+filter   = lxcmanager-auth
+maxretry = 5
+findtime = 600
+bantime  = 3600
+banaction = nftables-allports
+# IPs de confianza que nunca se deben banear (tus propios hosts admin,
+# NPM/proxy inverso, etc.) — rellenar antes de copiar a jail.d/.
+ignoreip = 127.0.0.1/8 ::1

@@ -1,0 +1,23 @@
+<div
+  id="backup-history"
+  hx-get="/partials/backups/{{ vmid }}/history"
+  hx-trigger="{{ 'every 3s' if backup_runs and backup_runs[0].status == 'running' else 'backupStarted from:body' }}"
+  hx-swap="outerHTML">
+{% for r in backup_runs %}
+<details>
+  <summary>
+    <span class="{{ 'status-ok' if r.status == 'ok' else ('status-failed' if r.status == 'failed' else 'status-neutral') }}">
+      {%- if r.status == 'ok' %}{{ t.status_ok }}
+      {%- elif r.status == 'failed' %}{{ t.status_failed }}
+      {%- elif r.status == 'running' %}{{ t.status_running }}
+      {%- else %}{{ r.status }}
+      {%- endif %}
+    </span>
+    — {{ r.started_at }}
+  </summary>
+  <pre>{{ r.detail }}</pre>
+</details>
+{% else %}
+<p><em>{{ t.no_backup_runs_yet }}</em></p>
+{% endfor %}
+</div>

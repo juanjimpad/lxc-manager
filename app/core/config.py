@@ -1,0 +1,72 @@
+import os
+from pathlib import Path
+from typing import Optional
+
+# config.py lives in app/core/ (one level deeper than before the module
+# split) — three .parent calls to reach the repo root.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DB_PATH = os.environ.get("LXCMGR_DB_PATH", str(BASE_DIR / "lxc-manager.db"))
+SSH_KEY_PATH = os.environ.get("LXCMGR_SSH_KEY", "/home/lxcmgr/.ssh/id_ed25519")
+
+PVE_API_URL = os.environ["LXCMGR_PVE_API_URL"]          # e.g. https://192.168.1.8:8006
+PVE_TOKEN_ID = os.environ["LXCMGR_PVE_TOKEN_ID"]        # e.g. lxc-manager@pve!api
+PVE_TOKEN_SECRET = os.environ["LXCMGR_PVE_TOKEN_SECRET"]
+PVE_VERIFY_SSL = os.environ.get("LXCMGR_PVE_VERIFY_SSL", "0") == "1"
+
+TELEGRAM_TOKEN = os.environ.get("LXCMGR_TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("LXCMGR_TELEGRAM_CHAT_ID", "")
+
+# node name (as Proxmox reports it) -> host IP the agent SSH connects to
+NODE_HOSTS = {
+    "lenovo-m700": os.environ.get("LXCMGR_HOST_M700", "192.168.1.8"),
+    "dell-5060": os.environ.get("LXCMGR_HOST_5060", "192.168.1.6"),
+}
+
+# secondary Proxmox tag -> app type. Mirrors lxc-manager-agent.sh exactly —
+# keep both in sync by hand, there are only 5 entries.
+TAG_APP_TYPE = {
+    "proxy": "npm",
+    "adblock": "adguard",
+    "dashboard": "glance",
+    "network": "ddns",
+    "git": "gitea",
+    "docker": "docker-host",
+}
+
+# whether app-update is safe to auto-apply, per app type. "docker-host" has
+# no app-update at all (Watchtower already covers its containers) — only
+# apt-upgrade applies there, and it goes through direct SSH, not the agent.
+APP_UPDATE_MODE = {
+    "adguard": "auto",
+    "glance": "check-only",
+    "ddns": "check-only",
+    "gitea": "check-only",
+    "npm": "none",
+    "docker-host": "none",
+}
+
+REQUIRED_TAG = "auto-update"
+
+# Fallback / Update-module notes only. "Back up now" and the Update
+# run's safety dump both write to every discovered PBS storage via
+# list_pbs_storages() — see PBS_STORAGES.
+PBS_STORAGE = os.environ.get("LXCMGR_PBS_STORAGE", "unraid-pbs")
+
+# Storages whose latest backup+verification we surface per guest, and
+# that "Back up now" writes to. Empty (the default) = discover every
+# `type=pbs` storage from the Proxmox API at sync/run time, so a newly
+# added PBS backend shows up on its own. Set
+# LXCMGR_PBS_STORAGES=unraid-pbs,synology-pbs to pin an explicit list
+# (and order) instead.
+_PBS_STORAGES_ENV = os.environ.get("LXCMGR_PBS_STORAGES", "").strip()
+PBS_STORAGES: Optional[list] = (
+    [s.strip() for s in _PBS_STORAGES_ENV.split(",") if s.strip()]
+    if _PBS_STORAGES_ENV
+    else None
+)
+
+# VMID(s) that are VMs, not LXC — reach them by direct SSH instead of the
+# host-side pct-exec agent. Value is the guest's own IP + SSH user.
+VM_GUESTS = {
+    112: {"host": "192.168.1.112", "user": "juan"},
+}
