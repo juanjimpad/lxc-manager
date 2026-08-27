@@ -26,12 +26,33 @@ def next_run_for(vmid: int):
     return job.next_run_time if job else None
 
 
+def _prune_stale_guest(conn, vmid: int) -> None:
+    """Remove a guest that no longer has the discovery tag (destroyed or
+    untagged). Child rows first — FKs have no ON DELETE CASCADE."""
+    job_id = _job_id(vmid)
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+    for table in (
+        "schedules",
+        "security_checks",
+        "backup_status",
+        "runs",
+        "backup_runs",
+    ):
+        conn.execute(f"DELETE FROM {table} WHERE vmid = ?", (vmid,))
+    conn.execute("DELETE FROM guests WHERE vmid = ?", (vmid,))
+
+
 def sync_guests_and_schedules() -> None:
     """Discovers guests by tag and creates/updates their schedules row
     and their scheduler job, then refreshes each guest's backup status
     (guests must exist in the DB first — backup_status.sync_all() reads
-    the vmid list from there). Called on startup and every hour."""
+    the vmid list from there). Guests that vanished from Proxmox (or lost
+    the required tag) are pruned from SQLite — refresh used to only
+    upsert, so destroyed guests lingered forever. Called on startup and
+    every hour."""
     guests = proxmox.discover_guests()
+    seen = {g["vmid"] for g in guests}
     with db.get_conn() as conn:
         for g in guests:
             conn.execute(
@@ -59,6 +80,13 @@ def sync_guests_and_schedules() -> None:
                     "INSERT INTO schedules (vmid, cron, enabled) VALUES (?, ?, 1)",
                     (g["vmid"], default_cron),
                 )
+        stale = [
+            row["vmid"]
+            for row in conn.execute("SELECT vmid FROM guests").fetchall()
+            if row["vmid"] not in seen
+        ]
+        for vmid in stale:
+            _prune_stale_guest(conn, vmid)
     reload_jobs()
     backup_status.sync_all()
 
