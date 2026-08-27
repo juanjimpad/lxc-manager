@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app/static/favicon.png" width="128" height="128" alt="lxc-manager">
+</p>
+
 # lxc-manager
 
 **Version 1.0.0**
