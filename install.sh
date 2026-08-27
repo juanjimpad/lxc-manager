@@ -40,6 +40,32 @@ if [ ! -f "/home/$APP_USER/.ssh/id_ed25519" ]; then
   echo
 fi
 
+# known_hosts for StrictHostKeyChecking=yes (IPs from .env if already filled)
+KNOWN="/home/$APP_USER/.ssh/known_hosts"
+if [ ! -s "$KNOWN" ]; then
+  touch "$KNOWN"
+  chown "$APP_USER:$APP_USER" "$KNOWN"
+  chmod 600 "$KNOWN"
+  # shellcheck disable=SC1091
+  if [ -f "$APP_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$APP_DIR/.env"
+    set +a
+  fi
+  for host in "${LXCMGR_HOST_M700:-192.168.1.8}" "${LXCMGR_HOST_5060:-192.168.1.6}" 192.168.1.112; do
+    ssh-keyscan -H -T 5 "$host" >> "$KNOWN" 2>/dev/null || true
+  done
+  chown "$APP_USER:$APP_USER" "$KNOWN"
+  echo "SSH known_hosts seeded at $KNOWN (review/replace if keyscan failed)."
+fi
+
+# Proxmox cluster CA for API TLS verification (optional at install time)
+if [ ! -f "$APP_DIR/pve-root-ca.pem" ]; then
+  echo "Tip: copy /etc/pve/pve-root-ca.pem from a Proxmox host to"
+  echo "  $APP_DIR/pve-root-ca.pem and set LXCMGR_PVE_CA_FILE to that path."
+fi
+
 install -m 750 -o root -g root "$REPO_DIR"/agent/lxc-manager-agent.sh /usr/local/sbin/lxc-manager-agent.sh 2>/dev/null || \
   echo "Note: agent/lxc-manager-agent.sh is installed on the Proxmox HOST, not here — see README.md"
 

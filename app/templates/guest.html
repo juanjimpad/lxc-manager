@@ -15,7 +15,7 @@
   pre { max-height: 24rem; overflow-y: auto; }
 </style>
 </head>
-<body>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container">
   <p><a href="/">{{ t.back }}</a></p>
   <hgroup>

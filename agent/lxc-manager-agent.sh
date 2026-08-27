@@ -21,14 +21,19 @@ tags=$(pct config "$vmid" | awk -F': ' '/^tags:/{print $2}')
 [[ ";$tags;" == *";auto-update;"* ]] \
   || { echo "vmid $vmid not tagged auto-update" >&2; exit 1; }
 
-case "$tags" in
-  *proxy*)     app=npm ;;
-  *adblock*)   app=adguard ;;
-  *dashboard*) app=glance ;;
-  *network*)   app=ddns ;;
-  *git*)       app=gitea ;;
-  *)           app=unknown ;;
-esac
+# Exact tag match (same map as app/core/config.py TAG_APP_TYPE).
+app=unknown
+IFS=';' read -r -a tag_arr <<< "$tags"
+for t in "${tag_arr[@]}"; do
+  case "$t" in
+    proxy)     app=npm; break ;;
+    adblock)   app=adguard; break ;;
+    dashboard) app=glance; break ;;
+    network)   app=ddns; break ;;
+    git)       app=gitea; break ;;
+    docker)    app=docker-host; break ;;
+  esac
+done
 
 case "$action" in
   apt-upgrade)

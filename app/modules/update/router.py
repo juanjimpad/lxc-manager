@@ -1,6 +1,7 @@
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+import html
 
 from ...core import agent, auth, config, db
 from ...core.strings import t
@@ -46,7 +47,11 @@ def partial_guests(request: Request, _=Depends(auth.require_login)):
 
 
 @router.post("/refresh")
-def refresh_guests(request: Request, _=Depends(auth.require_login)):
+async def refresh_guests(
+    request: Request,
+    _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
+):
     scheduler.sync_guests_and_schedules()
     guests, jobs, security, backups = _guests_with_status()
     return templates.TemplateResponse(
@@ -63,6 +68,8 @@ def guest_detail(request: Request, vmid: int, _=Depends(auth.require_login)):
         runs = conn.execute(
             "SELECT * FROM runs WHERE vmid=? ORDER BY id DESC LIMIT 20", (vmid,)
         ).fetchall()
+    if guest is None:
+        return RedirectResponse("/", status_code=303)
     # kernel is fetched lazily by the page itself (GET /guest/{vmid}/kernel)
     # so this route never blocks on a live SSH call — everything else here
     # is already local (SQLite).
@@ -70,7 +77,7 @@ def guest_detail(request: Request, vmid: int, _=Depends(auth.require_login)):
     bk = backup_status.get_evaluated(vmid)    # cached, never fetched live here
     backup_runs = backup_status.recent_runs(vmid)
     next_run = scheduler.next_run_for(vmid)
-    if guest is not None and guest["vmid"] in config.VM_GUESTS:
+    if guest["vmid"] in config.VM_GUESTS:
         vg = config.VM_GUESTS[guest["vmid"]]
         update_via = f"{vg['user']}@{vg['host']} (SSH)"
     else:
@@ -93,8 +100,8 @@ def guest_kernel(vmid: int, _=Depends(auth.require_login)):
     with db.get_conn() as conn:
         guest = conn.execute("SELECT node FROM guests WHERE vmid=?", (vmid,)).fetchone()
     if guest is None:
-        return t["unknown"]
-    return agent.get_kernel(guest["node"], vmid)
+        return html.escape(t["unknown"])
+    return html.escape(agent.get_kernel(guest["node"], vmid))
 
 
 @router.get("/partials/guest/{vmid}/history")
@@ -131,7 +138,12 @@ def partial_update_controls(request: Request, vmid: int, _=Depends(auth.require_
 
 
 @router.post("/guest/{vmid}/run", response_class=HTMLResponse)
-def guest_run_now(vmid: int, background_tasks: BackgroundTasks, _=Depends(auth.require_login)):
+async def guest_run_now(
+    vmid: int,
+    background_tasks: BackgroundTasks,
+    _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
+):
     runner.mark_pending(vmid)
     background_tasks.add_task(runner.run_guest, vmid)
     # tells the history panel (idle otherwise — see _run_history.html) to
@@ -139,20 +151,26 @@ def guest_run_now(vmid: int, background_tasks: BackgroundTasks, _=Depends(auth.r
     # is happening. Same event re-fetches #update-controls so the Run
     # button disables for the whole background job.
     return HTMLResponse(
-        content=f'<span class="status-ok">{t["run_launched"]}</span>',
+        content=f'<span class="status-ok">{html.escape(t["run_launched"])}</span>',
         headers={"HX-Trigger": "runStarted"},
     )
 
 
 @router.post("/guest/{vmid}/schedule", response_class=HTMLResponse)
-def guest_schedule(vmid: int, cron: str = Form(...), enabled: bool = Form(False), _=Depends(auth.require_login)):
+async def guest_schedule(
+    vmid: int,
+    cron: str = Form(...),
+    enabled: bool = Form(False),
+    _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
+):
     # Validate before touching the DB: reload_jobs() rebuilds every guest's
     # job in one pass, so one bad cron string saved here would raise partway
     # through and leave every guest after it unscheduled — not just this one.
     try:
         CronTrigger.from_crontab(cron, timezone="Europe/Madrid")
     except ValueError:
-        return f'<span class="status-failed">{t["invalid_cron"]}</span>'
+        return f'<span class="status-failed">{html.escape(t["invalid_cron"])}</span>'
 
     with db.get_conn() as conn:
         conn.execute(
@@ -165,7 +183,8 @@ def guest_schedule(vmid: int, cron: str = Form(...), enabled: bool = Form(False)
     # out-of-band instead of leaving it showing a stale time after e.g.
     # disabling the schedule.
     next_run = scheduler.next_run_for(vmid)
+    next_label = next_run or t["status_never"]
     return (
-        f'<span class="status-ok">{t["saved"]}</span>'
-        f'<span id="next-run-value" hx-swap-oob="true">{next_run or t["status_never"]}</span>'
+        f'<span class="status-ok">{html.escape(t["saved"])}</span>'
+        f'<span id="next-run-value" hx-swap-oob="true">{html.escape(str(next_label))}</span>'
     )

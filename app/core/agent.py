@@ -4,7 +4,9 @@ underneath), VM via direct SSH to the guest itself. Never runs an
 arbitrary command: only the actions already whitelisted by
 lxc-manager-agent.sh on the host side, or the fixed `apt` commands for
 VMs."""
+import os
 import subprocess
+from pathlib import Path
 
 from . import config
 
@@ -15,12 +17,23 @@ class ActionResult:
         self.output = output
 
 
+# Known hosts for Proxmox hosts + VMs must be populated (ssh-keyscan /
+# install) — never accept a new host key automatically.
+_SSH_KNOWN_HOSTS = os.environ.get(
+    "LXCMGR_SSH_KNOWN_HOSTS",
+    str(Path(config.SSH_KEY_PATH).expanduser().resolve().parent / "known_hosts"),
+)
+
+
 def _ssh(host: str, user: str, command: str, timeout: int = 180) -> ActionResult:
     cmd = [
         "ssh",
         "-i", config.SSH_KEY_PATH,
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-o", f"ConnectTimeout=10",
+        "-o", "StrictHostKeyChecking=yes",
+        "-o", "IdentitiesOnly=yes",
+        "-o", f"UserKnownHostsFile={_SSH_KNOWN_HOSTS}",
+        "-o", "GlobalKnownHostsFile=/dev/null",
+        "-o", "ConnectTimeout=10",
         f"{user}@{host}",
         command,
     ]
@@ -34,6 +47,13 @@ def _ssh(host: str, user: str, command: str, timeout: int = 180) -> ActionResult
 
 
 def run_lxc_action(node: str, vmid: int, action: str) -> ActionResult:
+    # Defense in depth: same whitelist as lxc-manager-agent.sh
+    allowed = {
+        "apt-upgrade", "apt-list", "app-update", "app-version",
+        "health-check", "sys-info", "security-audit",
+    }
+    if action not in allowed:
+        return ActionResult(False, f"unknown action: {action}")
     host = config.NODE_HOSTS[node]
     return _ssh(host, "root", f"{action} {vmid}")
 

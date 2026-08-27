@@ -1,5 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse
+import html
 
 from ...core import auth
 from ...core.strings import t
@@ -40,10 +41,15 @@ def partial_backup_history(request: Request, vmid: int, _=Depends(auth.require_l
 
 
 @router.post("/backups/{vmid}/run", response_class=HTMLResponse)
-def backup_run_now(vmid: int, background_tasks: BackgroundTasks, _=Depends(auth.require_login)):
+async def backup_run_now(
+    vmid: int,
+    background_tasks: BackgroundTasks,
+    _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
+):
     status.begin_run(vmid)
     background_tasks.add_task(status.run_backup_now, vmid)
     return HTMLResponse(
-        content=f'<span class="status-ok">{t["backup_started"]}</span>',
+        content=f'<span class="status-ok">{html.escape(t["backup_started"])}</span>',
         headers={"HX-Trigger": "backupStarted"},
     )

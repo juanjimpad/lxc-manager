@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
 <script src="/static/htmx.min.js"></script>
 </head>
-<body>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container" style="max-width: 24rem;">
   <p><a href="/">{{ t.back }}</a></p>
   <hgroup>
@@ -22,17 +22,21 @@
 
   <h2>{{ t.change_password_title }}</h2>
   <form hx-post="/settings/password" hx-target="#pw-feedback" hx-swap="innerHTML">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label>{{ t.current_password }}
-      <input type="password" name="current_password" required>
+      <input type="password" name="current_password" required autocomplete="current-password" maxlength="256">
     </label>
     <label>{{ t.new_password }}
-      <input type="password" name="new_password" required minlength="12">
+      <input type="password" name="new_password" required minlength="12" maxlength="256" autocomplete="new-password">
     </label>
     <button type="submit" class="btn-md">{{ t.change_button }}</button>
   </form>
   <span id="pw-feedback"></span>
 
-  <p><a href="/logout">{{ t.nav_logout }}</a></p>
+  <form method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn-link">{{ t.nav_logout }}</button>
+  </form>
 </main>
 </body>
 </html>

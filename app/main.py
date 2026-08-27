@@ -1,3 +1,4 @@
+import html
 import os
 from pathlib import Path
 
@@ -22,7 +23,30 @@ app.mount("/static", StaticFiles(directory=str(_here / "static")), name="static"
 SESSION_SECRET = os.environ.get("LXCMGR_SESSION_SECRET")
 if not SESSION_SECRET:
     raise RuntimeError("LXCMGR_SESSION_SECRET is not set — see .env.example")
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, https_only=False, same_site="lax")
+# https_only=True: Secure cookie — browsers only send it on HTTPS (NPM).
+# same_site=lax: blocks cross-site POST CSRF for the session cookie.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    https_only=True,
+    same_site="lax",
+    max_age=60 * 60 * 12,
+)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; img-src 'self' data:; frame-ancestors 'none'; "
+        "base-uri 'self'; form-action 'self'",
+    )
+    return response
 
 
 @app.exception_handler(auth.LoginRequired)
@@ -41,27 +65,54 @@ def _startup():
 
 @app.get("/login")
 def login_form(request: Request, next: str = "/"):
+    next_url = auth.safe_next(next)
     if auth.current_user(request):
-        return RedirectResponse(next, status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request, "next": next, "error": None})
+        return RedirectResponse(next_url, status_code=303)
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "next": next_url, "error": None},
+    )
 
 
 @app.post("/login")
-def login_submit(request: Request, username: str = Form(...), password: str = Form(...), next: str = Form("/")):
+async def login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    next: str = Form("/"),
+    _csrf=Depends(auth.require_csrf),
+):
+    next_url = auth.safe_next(next)
+    ip = auth.client_ip(request)
+    if auth.login_rate_limited(ip):
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "next": next_url,
+                "error": t["login_rate_limited"],
+            },
+            status_code=429,
+        )
     with db.get_conn() as conn:
         row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
     if row is None or not auth.verify_password(password, row["password_hash"]):
+        auth.record_login_failure(ip)
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "next": next, "error": t["login_error"]},
+            {"request": request, "next": next_url, "error": t["login_error"]},
             status_code=401,
         )
+    auth.clear_login_failures(ip)
+    # Rotate session on login (new CSRF + user).
+    request.session.clear()
     request.session["user"] = username
-    return RedirectResponse(next or "/", status_code=303)
+    auth.ensure_csrf(request)
+    return RedirectResponse(next_url, status_code=303)
 
 
-@app.get("/logout")
-def logout(request: Request):
+@app.post("/logout")
+async def logout(request: Request, _csrf=Depends(auth.require_csrf)):
     request.session.clear()
     return RedirectResponse("/login", status_code=303)
 
@@ -74,24 +125,27 @@ def settings_page(request: Request, _=Depends(auth.require_login)):
 
 
 @app.post("/settings/password", response_class=HTMLResponse)
-def settings_change_password(
+async def settings_change_password(
     request: Request,
     current_password: str = Form(...),
     new_password: str = Form(...),
     _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
 ):
     username = auth.current_user(request)
     with db.get_conn() as conn:
         row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
         if row is None or not auth.verify_password(current_password, row["password_hash"]):
-            return f'<span class="status-failed">{t["wrong_current_password"]}</span>'
+            return f'<span class="status-failed">{html.escape(t["wrong_current_password"])}</span>'
         if len(new_password) < 12:
-            return f'<span class="status-failed">{t["password_too_short"]}</span>'
+            return f'<span class="status-failed">{html.escape(t["password_too_short"])}</span>'
+        if len(new_password) > auth.MAX_PASSWORD_LEN:
+            return f'<span class="status-failed">{html.escape(t["password_too_long"])}</span>'
         conn.execute(
             "UPDATE users SET password_hash=? WHERE username=?",
             (auth.hash_password(new_password), username),
         )
-    return f'<span class="status-ok">{t["password_updated"]}</span>'
+    return f'<span class="status-ok">{html.escape(t["password_updated"])}</span>'
 
 
 # --- modules -----------------------------------------------------------

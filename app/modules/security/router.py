@@ -8,7 +8,12 @@ router = APIRouter()
 
 
 @router.post("/security/{vmid}/refresh")
-def refresh_security(request: Request, vmid: int, _=Depends(auth.require_login)):
+async def refresh_security(
+    request: Request,
+    vmid: int,
+    _=Depends(auth.require_login),
+    _csrf=Depends(auth.require_csrf),
+):
     audit.run_audit(vmid)
     sec = audit.get_evaluated(vmid)
     return templates.TemplateResponse(

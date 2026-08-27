@@ -341,3 +341,18 @@ table tbody tr:hover {
   background-color: var(--pico-secondary) !important;
   border-color: var(--pico-secondary) !important;
 }
+
+/* Logout / nav text button that looks like a Pico link */
+button.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--pico-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+button.btn-link:hover {
+  color: var(--pico-primary-hover);
+}

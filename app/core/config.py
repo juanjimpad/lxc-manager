@@ -11,7 +11,18 @@ SSH_KEY_PATH = os.environ.get("LXCMGR_SSH_KEY", "/home/lxcmgr/.ssh/id_ed25519")
 PVE_API_URL = os.environ["LXCMGR_PVE_API_URL"]          # e.g. https://192.168.1.8:8006
 PVE_TOKEN_ID = os.environ["LXCMGR_PVE_TOKEN_ID"]        # e.g. lxc-manager@pve!api
 PVE_TOKEN_SECRET = os.environ["LXCMGR_PVE_TOKEN_SECRET"]
-PVE_VERIFY_SSL = os.environ.get("LXCMGR_PVE_VERIFY_SSL", "0") == "1"
+# TLS to the Proxmox API: path to a CA/PEM file, or "1"/"true" (default)
+# for system CAs, or "0"/"false" to disable (not recommended). Prefer
+# copying /etc/pve/pve-root-ca.pem into the panel LXC and pointing
+# LXCMGR_PVE_CA_FILE at it.
+_PVE_CA_FILE = os.environ.get("LXCMGR_PVE_CA_FILE", "").strip()
+_PVE_VERIFY_RAW = os.environ.get("LXCMGR_PVE_VERIFY_SSL", "1").strip().lower()
+if _PVE_CA_FILE:
+    PVE_VERIFY_SSL: Optional[object] = _PVE_CA_FILE
+elif _PVE_VERIFY_RAW in ("0", "false", "no"):
+    PVE_VERIFY_SSL = False
+else:
+    PVE_VERIFY_SSL = True
 
 TELEGRAM_TOKEN = os.environ.get("LXCMGR_TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("LXCMGR_TELEGRAM_CHAT_ID", "")

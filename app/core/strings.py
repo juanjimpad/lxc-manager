@@ -98,6 +98,7 @@ t = {
     # login
     "login_title": "Log in",
     "login_error": "Wrong username or password.",
+    "login_rate_limited": "Too many failed logins. Try again in a few minutes.",
     "username": "Username",
     "password": "Password",
     "login_button": "Log in",
@@ -111,5 +112,6 @@ t = {
     "change_button": "Change",
     "wrong_current_password": "Current password is wrong.",
     "password_too_short": "New password must be at least 12 characters.",
+    "password_too_long": "New password is too long.",
     "password_updated": "Password updated.",
 }
