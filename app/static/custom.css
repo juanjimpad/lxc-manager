@@ -1,0 +1,343 @@
+/* Light "dashboard" theme on top of Pico.css, modeled on the Unraid web
+   UI: white cards with a soft shadow on a light gray page, a plain
+   system sans-serif, small borderless icon buttons instead of boxed
+   ones. Still just static CSS — no fonts, no images, no new requests. */
+
+:root {
+  font-size: 100% !important;
+
+  --pico-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  --pico-background-color: #eef0f3;
+  --pico-color: #2b3240;
+  --pico-h1-color: #1a2029;
+  --pico-h2-color: #1a2029;
+  --pico-muted-color: #7a8494;
+  --pico-muted-border-color: #e4e7ec;
+
+  --pico-primary: #2f6fed;
+  --pico-primary-background: #2f6fed;
+  --pico-primary-border: #2f6fed;
+  --pico-primary-hover: #1d5bdb;
+  --pico-primary-hover-background: #1d5bdb;
+  --pico-primary-focus: rgba(47, 111, 237, 0.25);
+  --pico-primary-inverse: #ffffff;
+  --pico-primary-underline: rgba(47, 111, 237, 0.4);
+
+  --pico-secondary: #64748b;
+  --pico-secondary-background: #f1f5f9;
+  --pico-secondary-border: #e2e8f0;
+  --pico-secondary-hover: #475569;
+  --pico-secondary-hover-background: #e2e8f0;
+  --pico-secondary-inverse: #1a2029;
+
+  --pico-card-background-color: #ffffff;
+  --pico-card-border-color: #e4e7ec;
+  --pico-card-box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+  --pico-button-box-shadow: none;
+  --pico-button-hover-box-shadow: none;
+  --pico-box-shadow: none;
+
+  --pico-border-radius: 0.65rem;
+  --pico-border-width: 1px;
+
+  --pico-table-border-color: #e4e7ec;
+  --pico-table-row-stripped-background-color: transparent;
+
+  --pico-code-background-color: #f1f3f6;
+  --pico-code-color: #1a2029;
+
+  --pico-mark-background-color: transparent;
+  --pico-mark-color: inherit;
+  --pico-ins-color: #16a34a;
+  --pico-del-color: #dc2626;
+
+  --pico-form-element-background-color: #ffffff;
+  --pico-form-element-border-color: #d7dbe1;
+  --pico-form-element-color: #1a2029;
+  --pico-form-element-placeholder-color: #9aa4b2;
+  --pico-form-element-active-border-color: #2f6fed;
+  --pico-form-element-focus-color: rgba(47, 111, 237, 0.25);
+
+  --pico-dropdown-background-color: #ffffff;
+  --pico-dropdown-border-color: #e4e7ec;
+
+  --status-ok: #16a34a;
+  --status-failed: #dc2626;
+  --status-warning: #d97706;
+}
+
+a {
+  font-weight: 500;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+article {
+  border: 1px solid var(--pico-card-border-color);
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+h1 small {
+  font-size: 0.6em;
+  font-weight: 500;
+  color: var(--pico-muted-color);
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Card subsection titles (Schedule, History, per-PBS store names). */
+article h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pico-muted-color);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+hgroup {
+  margin-bottom: 1rem;
+}
+/* Pico styles every non-first hgroup child as a big muted subtitle —
+   that breaks once we add the update-meta line and hardware small.
+   Keep only the first <p> as the page subtitle. */
+hgroup > p {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.35rem;
+}
+hgroup > p.guest-update-meta {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--pico-color);
+  margin: 0.35rem 0 0.5rem;
+}
+hgroup > small {
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+}
+
+.guest-update-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+}
+.guest-update-meta strong {
+  font-weight: 600;
+  color: var(--pico-muted-color);
+  margin-right: 0.25rem;
+}
+
+/* One subsection per PBS storage inside the Backups card — count and
+   names come from Proxmox (type=pbs), so a new backend just adds another
+   block with no template change. */
+.backup-store + .backup-store {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+.backup-store h3 {
+  margin-top: 0.35rem;
+}
+.backup-store + .backup-store h3 {
+  margin-top: 0;
+}
+
+code, pre, kbd {
+  border: 1px solid var(--pico-muted-border-color);
+}
+
+mark {
+  border: none;
+  border-radius: 0.35rem;
+  padding: 0.05rem 0.5rem;
+  font-weight: 600;
+}
+
+.status-ok, .status-failed, .status-warning, .status-neutral {
+  font-weight: 600;
+}
+.status-ok { color: var(--status-ok); }
+.status-failed { color: var(--status-failed); }
+.status-warning { color: var(--status-warning); }
+.status-neutral { color: var(--pico-color); }
+
+.status-ok::before, .status-failed::before, .status-warning::before, .status-neutral::before {
+  content: "●";
+  display: inline-block;
+  margin-right: 0.4em;
+  font-size: 0.7em;
+  vertical-align: 0.08em;
+}
+
+/* Pico sets `li { list-style: square }` directly on the element — an
+   inherited `list-style: none` from the parent ul loses to that (an
+   explicit rule on the element always beats an inherited value,
+   regardless of selector specificity), so the square markers survived
+   every earlier attempt to remove them via the ul alone. */
+.plain-list, .plain-list li {
+  list-style: none;
+}
+
+/* htmx's own .htmx-indicator rule only fades opacity — an invisible
+   element still takes up its layout space, permanently shifting the
+   content below it down by one line even when nothing is loading.
+   Collapse it out of flow instead, and only lay it out while the
+   request it's tied to is actually in flight. */
+#refresh-indicator, #security-checking {
+  display: none;
+}
+#refresh-indicator.htmx-request {
+  display: inline;
+}
+#security-checking.htmx-request {
+  display: block;
+}
+/* While a check is running, hide the old checklist entirely instead of
+   leaving it sitting there next to "Checking..." — everything after
+   the indicator in the card is stale until the fresh response swaps
+   the whole card in. */
+#security-checking.htmx-request ~ * {
+  display: none;
+}
+
+table th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pico-muted-color);
+}
+table tbody tr:hover {
+  background: var(--pico-secondary-background);
+}
+
+/* One size for text action buttons (Save, Change, Log in) — smaller
+   than Pico's full-width default. */
+.btn-md {
+  width: auto;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* Section heading with its action icon to the right, never wrapping
+   onto its own line. */
+.section-header {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-header h1,
+.section-header h2 {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* Borderless icon button — a plain glyph with a soft round highlight
+   on hover/focus, no visible box at rest (unlike a normal button). */
+.btn-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--pico-muted-color) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 50%;
+  box-shadow: none !important;
+}
+.btn-icon:hover, .btn-icon:focus {
+  color: var(--pico-color) !important;
+  background: var(--pico-secondary-background) !important;
+}
+/* Greyed out for the whole background job (Backups/Update pending),
+   not only the brief POST — htmx also adds [disabled] via hx-disabled-elt
+   while a request is in flight (Security check, index refresh). */
+.btn-icon:disabled,
+.btn-icon[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--pico-muted-color) !important;
+  background: transparent !important;
+}
+
+/* Bigger variant — e.g. the main page's refresh icon, which stands
+   more on its own than a small per-card action. */
+.btn-icon-lg {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.4rem;
+}
+
+/* Labeled key/value row — last run, next scheduled run, etc. */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  font-size: 0.9rem;
+}
+.stat-row:last-of-type {
+  border-bottom: none;
+}
+.stat-label {
+  color: var(--pico-muted-color);
+}
+
+/* Schedule editor: cron input and the active switch on one row — saves
+   itself on change (see hx-trigger="change" on the form), no button. */
+.schedule-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+}
+.schedule-controls input[type="text"] {
+  margin-bottom: 0;
+}
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+.switch-label input[type="checkbox"] {
+  margin-bottom: 0;
+}
+/* Monochrome switch — the rest of this card's controls are grayscale,
+   Pico's default checked-switch color (the accent blue) stood out on
+   its own for no reason. */
+.switch-label input[type="checkbox"][role="switch"]:checked {
+  background-color: var(--pico-secondary) !important;
+  border-color: var(--pico-secondary) !important;
+}

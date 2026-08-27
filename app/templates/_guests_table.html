@@ -1,0 +1,43 @@
+<table id="guest-table" hx-get="/partials/guests" hx-trigger="every 15s" hx-swap="outerHTML">
+  <thead>
+    <tr>
+      <th>{{ t.col_vmid }}</th><th>{{ t.col_name }}</th><th>{{ t.col_type }}</th>
+      <th>{{ t.col_os }}</th><th>{{ t.col_host }}</th>
+      <th>{{ t.col_app }}</th><th>{{ t.col_update }}</th><th>{{ t.col_security }}</th>
+      <th>{{ t.col_backups }}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for g in guests %}
+    <tr>
+      <td><a href="/guest/{{ g.vmid }}">{{ g.vmid }}</a></td>
+      <td>{{ g.name }}</td>
+      <td>{% if g.type == 'lxc' %}{{ t.guest_type_lxc }}{% else %}{{ t.guest_type_vm }}{% endif %}</td>
+      <td>{{ g.os_id }}</td>
+      <td>{{ g.node }}</td>
+      <td>{{ g.app_type }}</td>
+      <td>
+        {% if g.last_status == 'ok' %}<span class="status-ok">{{ t.status_ok }}</span>
+        {% elif g.last_status == 'failed' %}<span class="status-failed">{{ t.status_failed }}</span>
+        {% elif g.last_status == 'running' %}{{ t.status_running }}
+        {% else %}{{ t.status_never }}{% endif %}
+      </td>
+      <td>
+        {% set sec = security.get(g.vmid, {'checked': False}) %}
+        {% if not sec.checked %}{{ t.security_never }}
+        {% elif sec.overall_ok %}<span class="status-ok">{{ t.status_ok }}</span>
+        {% else %}<span class="status-failed" title="{{ t.security_warning_tooltip }}">{{ t.status_failed }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% set bk = backups.get(g.vmid, {'checked': False}) %}
+        {% if not bk.checked %}{{ t.status_never }}
+        {% elif bk.overall_status == 'ok' %}<span class="status-ok">{{ t.status_ok }}</span>
+        {% elif bk.overall_status == 'warning' %}<span class="status-warning" title="{{ t.backups_warning_tooltip }}">{{ t.status_warning }}</span>
+        {% else %}<span class="status-failed" title="{{ t.backups_failed_tooltip }}">{{ t.status_failed }}</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>

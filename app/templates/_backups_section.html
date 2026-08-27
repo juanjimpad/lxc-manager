@@ -1,0 +1,58 @@
+<article
+  id="backups-section"
+  hx-get="/partials/backups/{{ vmid }}"
+  hx-trigger="{{ 'every 3s' if pending else 'backupStarted from:body' }}"
+  hx-swap="outerHTML">
+  <div class="section-header">
+    <h2>{{ t.section_backups }}</h2>
+    <button
+      hx-post="/backups/{{ vmid }}/run"
+      hx-target="#backup-feedback"
+      hx-swap="innerHTML"
+      hx-disabled-elt="this"
+      class="btn-icon"
+      title="{{ t.backup_now }}"
+      aria-label="{{ t.backup_now }}"
+      {% if pending %}disabled{% endif %}>
+      {{ t.icon_run }}
+    </button>
+  </div>
+
+  <span id="backup-feedback"></span>
+
+  {% if pending %}
+    <p class="status-neutral">{{ t.backing_up }}</p>
+  {% elif not bk.checked or not bk.storages %}
+    <p>{{ t.no_backups_yet }}</p>
+  {% else %}
+    {% for s in bk.storages %}
+      <div class="backup-store">
+        <h3>{{ s.storage }}</h3>
+        {% if s.has_backup %}
+          <div class="stat-row">
+            <span class="stat-label">{{ t.check_last_backup }}</span>
+            <span class="{{ 'status-ok' if s.age_ok else 'status-failed' }}">{{ s.last_backup_at }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t.check_verification }}</span>
+            <span class="{{ 'status-failed' if s.verification_failed else ('status-ok' if s.verification == 'ok' else 'status-neutral') }}">
+              {%- if s.verification == 'ok' %}{{ t.status_ok }}
+              {%- elif s.verification == 'failed' %}{{ t.status_failed }}
+              {%- else %}{{ s.verification or t.unknown }}
+              {%- endif %}
+            </span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t.check_size }}</span>
+            <span class="status-neutral">{{ s.last_backup_size | human_mem if s.last_backup_size is not none else '—' }}</span>
+          </div>
+        {% else %}
+          <p class="status-failed">{{ t.no_backup_on_storage }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <h3>{{ t.section_history }}</h3>
+  {% include "_backup_history.html" %}
+</article>

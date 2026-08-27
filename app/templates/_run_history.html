@@ -1,0 +1,23 @@
+<div
+  id="run-history"
+  hx-get="/partials/guest/{{ vmid }}/history"
+  hx-trigger="{{ 'every 3s' if runs and runs[0].status == 'running' else 'runStarted from:body' }}"
+  hx-swap="outerHTML">
+{% for r in runs %}
+<details>
+  <summary>
+    <span class="{{ 'status-ok' if r.status == 'ok' else ('status-failed' if r.status == 'failed' else 'status-neutral') }}">
+      {%- if r.status == 'ok' %}{{ t.status_ok }}
+      {%- elif r.status == 'failed' %}{{ t.status_failed }}
+      {%- elif r.status == 'running' %}{{ t.status_running }}
+      {%- else %}{{ r.status }}
+      {%- endif %}
+    </span>
+    — {{ r.started_at }}
+  </summary>
+  <pre>{{ r.detail }}</pre>
+</details>
+{% else %}
+<p><em>{{ t.no_runs_yet }}</em></p>
+{% endfor %}
+</div>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t.app_name }} · {{ guest.name }}</title>
+<link rel="stylesheet" href="/static/pico.min.css">
+<link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
+<script src="/static/htmx.min.js"></script>
+<style>
+  pre { max-height: 24rem; overflow-y: auto; }
+</style>
+</head>
+<body>
+<main class="container">
+  <p><a href="/">{{ t.back }}</a></p>
+  <hgroup>
+    <h1>{{ guest.name }} <small>({{ guest.vmid }})</small></h1>
+    <p>{{ guest.node }} · {{ guest.app_type }}</p>
+    <p class="guest-update-meta">
+      <span><strong>{{ t.label_type }}:</strong>
+        {% if guest.type == 'lxc' %}{{ t.guest_type_lxc }}{% else %}{{ t.guest_type_vm }}{% endif %}
+      </span>
+      <span><strong>{{ t.label_os }}:</strong> {{ guest.os_id }}</span>
+      <span><strong>{{ t.label_os_family }}:</strong> {{ guest.os_family }}</span>
+      <span><strong>{{ t.label_os_updates }}:</strong>
+        {% if guest.update_supported %}{{ t.os_updates_apt }}
+        {% elif guest.os_family == 'windows' %}{{ t.os_updates_disabled_windows }}
+        {% else %}{{ t.os_updates_disabled }}{% endif %}
+      </span>
+      <span><strong>{{ t.label_update_via }}:</strong> {{ update_via }}</span>
+    </p>
+    <small style="color: var(--pico-muted-color)">
+      {{ guest.maxcpu }} {{ t.vcpu }} · {{ guest.maxmem | human_mem }} {{ t.ram }} ·
+      {{ guest.ip }} ·
+      {% if guest.type == 'lxc' %}{{ t.kernel_host }}{% else %}{{ t.kernel }}{% endif %}:
+      <span hx-get="/guest/{{ guest.vmid }}/kernel" hx-trigger="load" hx-swap="innerHTML">{{ t.loading }}</span>
+    </small>
+  </hgroup>
+
+  {% include "_security_section.html" %}
+
+  {% include "_backups_section.html" %}
+
+  <article>
+    {% set running = runner_pending or (runs and runs[0].status == 'running') %}
+    {% set update_supported = guest.update_supported %}
+    {% set os_family = guest.os_family %}
+    {% set os_id = guest.os_id %}
+    {% include "_update_controls.html" %}
+    <div class="stat-row">
+      <span class="stat-label">{{ t.next_scheduled }}</span>
+      <span id="next-run-value">{{ next_run or t.status_never }}</span>
+    </div>
+
+    <h3>{{ t.section_schedule }}</h3>
+    <form hx-post="/guest/{{ guest.vmid }}/schedule" hx-target="#schedule-feedback" hx-swap="innerHTML" hx-trigger="change">
+      <div class="schedule-controls">
+        <input type="text" name="cron" value="{{ schedule.cron if schedule else '' }}" placeholder="{{ t.cron_placeholder }}">
+        <label class="switch-label">
+          <input type="checkbox" name="enabled" role="switch" {{ 'checked' if schedule and schedule.enabled else '' }}>
+          {{ t.active_label }}
+        </label>
+      </div>
+    </form>
+    <span id="schedule-feedback"></span>
+
+    <h3>{{ t.section_history }}</h3>
+    {% include "_run_history.html" %}
+  </article>
+</main>
+</body>
+</html>

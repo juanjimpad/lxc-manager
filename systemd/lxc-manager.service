@@ -1,0 +1,24 @@
+[Unit]
+Description=lxc-manager — Proxmox cluster update panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lxcmgr
+Group=lxcmgr
+WorkingDirectory=/home/lxcmgr/lxc-manager
+EnvironmentFile=/home/lxcmgr/lxc-manager/.env
+# --forwarded-allow-ips: IP of the reverse proxy in front of this (NPM,
+# Traefik...) — without this, the app (and any fail2ban jail on its
+# log) sees the proxy's IP, not the real client's. Set to the real IP.
+ExecStart=/home/lxcmgr/lxc-manager/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8500 --proxy-headers --forwarded-allow-ips=CHANGE_ME_PROXY_IP
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/lxcmgr/lxc-manager
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

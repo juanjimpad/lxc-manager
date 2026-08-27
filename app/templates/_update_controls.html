@@ -1,0 +1,40 @@
+{# Run button + Last run — polls while a run is in flight so the button
+   stays disabled for the whole background job, not just the POST. #}
+<div
+  id="update-controls"
+  hx-get="/partials/guest/{{ vmid }}/update-controls"
+  hx-trigger="{{ 'every 3s' if running else 'runStarted from:body' }}"
+  hx-swap="outerHTML">
+  <div class="section-header">
+    <h2>{{ t.section_update }}</h2>
+    <button
+      hx-post="/guest/{{ vmid }}/run"
+      hx-target="#run-feedback"
+      hx-swap="innerHTML"
+      hx-disabled-elt="this"
+      class="btn-icon"
+      title="{{ t.run_now }}"
+      aria-label="{{ t.run_now }}"
+      {% if running %}disabled{% endif %}>
+      {{ t.icon_run }}
+    </button>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">{{ t.last_run }}</span>
+    {% if runs %}
+      <span class="{{ 'status-ok' if runs[0].status == 'ok' else ('status-failed' if runs[0].status == 'failed' else 'status-neutral') }}">
+        {% if runs[0].status == 'running' %}{{ t.status_running }}{% else %}{{ runs[0].started_at }}{% endif %}
+      </span>
+    {% else %}
+      <span>{{ t.status_never }}</span>
+    {% endif %}
+  </div>
+  {% if not update_supported %}
+    <p class="status-neutral" style="font-size:0.85rem;margin:0.35rem 0 0;">
+      {% if os_family == 'windows' %}{{ t.os_updates_disabled_windows }}
+      {% else %}{{ t.os_updates_disabled }} ({{ os_id }}){% endif %}
+      — backups still run on every PBS storage.
+    </p>
+  {% endif %}
+  <span id="run-feedback"></span>
+</div>

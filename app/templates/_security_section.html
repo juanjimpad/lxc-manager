@@ -1,0 +1,33 @@
+<article id="security-section">
+  <div class="section-header">
+    <h2>{{ t.section_security }}</h2>
+    <button
+      hx-post="/security/{{ vmid }}/refresh"
+      hx-target="#security-section"
+      hx-swap="outerHTML"
+      hx-indicator="#security-checking"
+      hx-disabled-elt="this"
+      class="btn-icon"
+      title="{{ t.check_again if sec.checked else t.check_now }}"
+      aria-label="{{ t.check_again if sec.checked else t.check_now }}">
+      {{ t.icon_run }}
+    </button>
+  </div>
+
+  <p id="security-checking" class="htmx-indicator status-neutral">{{ t.checking }}</p>
+
+  {% if sec.checked %}
+    <ul class="plain-list" style="margin:0 0 0.25rem 0; padding-left:0;">
+      <li><span class="{{ 'status-ok' if sec.ssh_active == 'active' else '' }}">{{ t.check_ssh }}: {{ sec.ssh_active or t.unknown }}</span></li>
+      <li><span class="{{ 'status-ok' if sec.password_auth_ok else 'status-failed' }}">{{ t.check_password }}: {{ t.password_allowed if sec.password_auth == 'yes' else (t.password_disabled if sec.password_auth == 'no' else t.unknown) }}</span></li>
+      <li><span class="{{ 'status-ok' if sec.authorized_keys_ok else 'status-failed' }}">{{ t.check_keys }}: {{ sec.authorized_keys_files if sec.authorized_keys_files is not none else t.unknown }}</span></li>
+      <li><span class="{{ 'status-ok' if sec.permit_root_ok else 'status-failed' }}">{{ t.check_root_login }}: {{ sec.permit_root_login or t.unknown }}</span></li>
+      <li><span class="{{ 'status-ok' if sec.fail2ban_ok else 'status-failed' }}">{{ t.check_fail2ban }}: {{ sec.fail2ban or t.unknown }}</span></li>
+      <li><span class="{{ 'status-ok' if sec.sudo_ok else 'status-failed' }}">{{ t.check_sudo_nopasswd }}: {{ sec.sudo_nopasswd_lines if sec.sudo_nopasswd_lines is not none else t.unknown }}</span></li>
+      <li><span class="status-neutral">{{ t.check_ports }}: {{ sec.listening_ports or '—' }}</span></li>
+    </ul>
+    <small style="color: var(--pico-muted-color)">{{ t.last_checked }}: {{ sec.checked_at }}</small>
+  {% else %}
+    <p style="margin-bottom:0.25rem;">{{ t.not_checked_yet }}</p>
+  {% endif %}
+</article>
