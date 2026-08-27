@@ -4,7 +4,10 @@
 
 # lxc-manager
 
-**Version 1.0.0**
+[![Version](https://img.shields.io/badge/Version-1.0.0-informational)](https://github.com/juanjimpad/lxc-manager)
+[![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-orange.svg)](./LICENSE)
+[![Built with Cursor Grok 4.5](https://img.shields.io/badge/Built%20with-Cursor%20Grok%204.5-000000)](https://cursor.com)
+[![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/juanjimpad)
 
 Centralized web panel to schedule and run LXC/VM updates across a
 Proxmox cluster — born for a two-node homelab, but nothing about that
