@@ -56,7 +56,10 @@ APP_UPDATE_MODE = {
     "docker-host": "none",
 }
 
-REQUIRED_TAG = "auto-update"
+# Discovery / panel / backups / security. Weekly apt schedules still
+# require the separate `auto-update` tag (see scheduler sync).
+REQUIRED_TAG = "managed"
+AUTO_UPDATE_TAG = "auto-update"
 
 # Fallback / Update-module notes only. "Back up now" and the Update
 # run's safety dump both write to every discovered PBS storage via
@@ -79,5 +82,5 @@ PBS_STORAGES: Optional[list] = (
 # VMID(s) that are VMs, not LXC — reach them by direct SSH instead of the
 # host-side pct-exec agent. Value is the guest's own IP + SSH user.
 VM_GUESTS = {
-    112: {"host": "192.168.1.112", "user": "juan"},
+    # empty — dell5060-docker (112) destroyed 2026-08-28
 }

@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from ...core import db, proxmox
+from ...core import config, db, proxmox
 from ..backups import status as backup_status
 from ..security import audit as security_audit
 from . import runner
@@ -76,9 +76,13 @@ def sync_guests_and_schedules() -> None:
             ).fetchone()
             if existing is None:
                 default_cron = DEFAULT_CRON_BY_NODE.get(g["node"], "0 5 * * 6")
+                # Weekly apt only if Proxmox also has auto-update; managed
+                # alone is enough for panel / backups / security.
+                tag_list = [t for t in (g["tags"] or "").split(";") if t]
+                enabled = 1 if config.AUTO_UPDATE_TAG in tag_list else 0
                 conn.execute(
-                    "INSERT INTO schedules (vmid, cron, enabled) VALUES (?, ?, 1)",
-                    (g["vmid"], default_cron),
+                    "INSERT INTO schedules (vmid, cron, enabled) VALUES (?, ?, ?)",
+                    (g["vmid"], default_cron, enabled),
                 )
         stale = [
             row["vmid"]

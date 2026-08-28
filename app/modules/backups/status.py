@@ -171,8 +171,11 @@ def recent_runs(vmid: int, limit: int = 20) -> list:
 def run_backup_now(vmid: int) -> None:
     """A real on-demand backup — not a status refresh. Runs vzdump
     sequentially against every discovered PBS storage (same list the
-    status card shows), then sync_all() refreshes timestamps. Each
-    invocation is recorded in backup_runs (like update `runs`)."""
+    status card shows), then PBS integrity verify of the latest
+    snapshot on each storage, then sync_all() refreshes timestamps.
+    Each invocation is recorded in backup_runs (like update `runs`)."""
+    from ...core import agent as agent_mod
+
     _pending.add(vmid)
     with db.get_conn() as conn:
         guest = conn.execute(
@@ -216,6 +219,21 @@ def run_backup_now(vmid: int) -> None:
                 lines.append(f"vzdump → {storage}: {'ok' if ok else 'FAILED'}")
                 if not ok:
                     all_ok = False
+            # Integrity check on the snapshots just written (agent on the
+            # Proxmox node talks to PBS with the storage credentials).
+            if all_ok:
+                ver = agent_mod.run_lxc_action(
+                    guest["node"], vmid, "pbs-verify", timeout=900
+                )
+                for line in (ver.output or "").splitlines():
+                    if line.strip():
+                        lines.append(line.strip())
+                if not ver.ok:
+                    all_ok = False
+                    if not (ver.output or "").strip():
+                        lines.append("pbs-verify: FAILED")
+            else:
+                lines.append("pbs-verify: skipped (vzdump failed)")
             status = "ok" if all_ok else "failed"
         sync_all()
         with db.get_conn() as conn:

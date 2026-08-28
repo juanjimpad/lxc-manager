@@ -76,7 +76,7 @@ def classify_os(guest_type: str, pve_ostype: str = None) -> dict:
 
 
 def discover_guests() -> list[dict]:
-    """Cluster-wide guests tagged auto-update, with app_type and OS
+    """Cluster-wide guests tagged `managed`, with app_type and OS
     classification already resolved. For Linux VMs listed in VM_GUESTS,
     refines os_id via SSH (/etc/os-release) so apt only runs on
     Debian/Ubuntu."""

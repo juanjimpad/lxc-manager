@@ -20,7 +20,7 @@ def _guests_with_status():
                       (SELECT status FROM runs r WHERE r.vmid=g.vmid ORDER BY r.id DESC LIMIT 1) as last_status,
                       (SELECT started_at FROM runs r WHERE r.vmid=g.vmid ORDER BY r.id DESC LIMIT 1) as last_run
                FROM guests g LEFT JOIN schedules s ON s.vmid = g.vmid
-               ORDER BY g.node, g.vmid"""
+               ORDER BY g.vmid"""
         ).fetchall()
     jobs = {j.id: j.next_run_time for j in scheduler.scheduler.get_jobs()}
     security = {g["vmid"]: security_audit.get_evaluated(g["vmid"]) for g in guests}

@@ -46,16 +46,16 @@ def _ssh(host: str, user: str, command: str, timeout: int = 180) -> ActionResult
         return ActionResult(False, f"timeout after {timeout}s")
 
 
-def run_lxc_action(node: str, vmid: int, action: str) -> ActionResult:
+def run_lxc_action(node: str, vmid: int, action: str, timeout: int = 180) -> ActionResult:
     # Defense in depth: same whitelist as lxc-manager-agent.sh
     allowed = {
         "apt-upgrade", "apt-list", "app-update", "app-version",
-        "health-check", "sys-info", "security-audit",
+        "health-check", "sys-info", "security-audit", "pbs-verify",
     }
     if action not in allowed:
         return ActionResult(False, f"unknown action: {action}")
     host = config.NODE_HOSTS[node]
-    return _ssh(host, "root", f"{action} {vmid}")
+    return _ssh(host, "root", f"{action} {vmid}", timeout=timeout)
 
 
 def run_vm_apt_upgrade(vmid: int) -> ActionResult:

@@ -4,7 +4,7 @@
 
 # lxc-manager
 
-[![Version](https://img.shields.io/badge/Version-1.0.1-informational)](https://github.com/juanjimpad/lxc-manager)
+[![Version](https://img.shields.io/badge/Version-1.0.3-informational)](https://github.com/juanjimpad/lxc-manager)
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-orange.svg)](./LICENSE)
 [![Built with Cursor Grok 4.5](https://img.shields.io/badge/Built%20with-Cursor%20Grok%204.5-000000)](https://cursor.com)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/juanjimpad)
@@ -28,10 +28,10 @@ Code segmented by module, each with its own FastAPI router:
   transport to hosts/VMs, the SQLite schema and connection, login/session,
   Telegram, the single Jinja2Templates instance, and the UI strings.
 - **`app/modules/update/`** — the original module. Discovers guests by
-  tag (`auto-update` by default) via the Proxmox API, schedules a weekly
-  run per guest (editable from the UI), and for each one: safety
-  snapshot → system packages → app update (if the type allows it) →
-  health check → Telegram notification.
+  tag (`managed`) via the Proxmox API; weekly apt schedules are enabled
+  automatically only when the guest also has `auto-update`. For each
+  scheduled/manual run: safety snapshot → system packages → app update
+  (if the type allows it) → health check → Telegram notification.
 - **`app/modules/security/`** — audits SSH/fail2ban/sudo/ports per guest
   (Is SSH active? Does it allow username+password? Are keys loaded? Is
   `fail2ban` active? `PermitRootLogin`? Passwordless `sudo`? Listening
@@ -52,7 +52,9 @@ Code segmented by module, each with its own FastAPI router:
   backup that's simply never been verified is neutral, not a failure).
   Refreshed automatically every hour and manually via "Back up now" —
   which triggers a *real* on-demand `vzdump` to **every** discovered
-  PBS storage (sequentially), then refreshes all storages' status.
+  PBS storage (sequentially), then a **PBS integrity verify** of the
+  latest snapshot on each storage (agent action `pbs-verify`), then
+  refreshes all storages' status.
   The Update module's pre-update dump does the same (all PBS storages).
   Guests are classified as LXC or VM; VMs get an OS probe (Proxmox
   `ostype` + `/etc/os-release` over SSH when configured). Package
@@ -66,8 +68,8 @@ Code segmented by module, each with its own FastAPI router:
   root's `authorized_keys`. The panel's SSH key never opens a shell: it
   can only invoke this script, which only accepts a fixed list of
   actions (`apt-upgrade`, `apt-list`, `app-update`, `app-version`,
-  `health-check`, `sys-info`, `security-audit`) on guests tagged
-  `auto-update`. **Adding a new capability means adding a `case` to the
+  `health-check`, `sys-info`, `security-audit`, `pbs-verify`) on guests tagged
+  `managed`. **Adding a new capability means adding a `case` to the
   agent, never widening what the key itself can do.**
 - **Own login** (`app/core/auth.py`): username/password, signed-cookie
   session (Starlette `SessionMiddleware`), PBKDF2-HMAC-SHA256 hashing via
@@ -112,8 +114,9 @@ Code segmented by module, each with its own FastAPI router:
 5. Fill in `.env` (copied from `.env.example`) with the API URL, the
    token, each host's IP, an `LXCMGR_SESSION_SECRET` (`openssl rand
    -hex 32`) and (optional) Telegram.
-6. Tag every guest to manage with `auto-update` (in addition to its
-   existing tags): `pct set <vmid> -tags <current-tags>,auto-update`.
+6. Tag every guest to manage with `managed` (panel, backups, security).
+   Add `auto-update` as well if it should join the weekly apt schedule:
+   `pct set <vmid> --tags "managed;auto-update;<other-tags>"`.
 7. `systemctl start lxc-manager`.
 
 `install.sh` already installs **fail2ban** (package + filter + jail,
@@ -148,6 +151,6 @@ depend on your network:
   a session.
 - The Proxmox API token carries its own minimal role (`VM.Audit` +
   `VM.Backup`), not a broader built-in role.
-- The agent checks the `auto-update` tag on every invocation — a guest
+- The agent checks the `managed` tag on every invocation — a guest
   without that tag (for example, something as critical as PBS itself)
   is never reachable no matter what's asked of it.

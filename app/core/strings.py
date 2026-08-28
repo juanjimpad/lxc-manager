@@ -9,7 +9,7 @@ t = {
     "back": "← back",
 
     # index
-    "index_subtitle": "Guests tagged 'auto-update', discovered via the Proxmox API.",
+    "index_subtitle": "Guests tagged 'managed' (Proxmox API). Weekly updates need 'auto-update' too.",
     "refresh": "Refresh",
     "refreshing": "refreshing…",
     "col_vmid": "VMID",
@@ -64,7 +64,7 @@ t = {
     "check_size": "Size",
     "backup_now": "Back up now",
     "backing_up": "Backing up…",
-    "backup_started": "Started — this can take a while for a large guest.",
+    "backup_started": "Started — backup + integrity verify; can take a while.",
     "no_backups_yet": "No backups found.",
     "no_backup_on_storage": "No backup on this storage.",
     "no_backup_runs_yet": "No on-demand backups yet.",

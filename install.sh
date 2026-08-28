@@ -53,7 +53,7 @@ if [ ! -s "$KNOWN" ]; then
     source "$APP_DIR/.env"
     set +a
   fi
-  for host in "${LXCMGR_HOST_M700:-192.168.1.8}" "${LXCMGR_HOST_5060:-192.168.1.6}" 192.168.1.112; do
+  for host in "${LXCMGR_HOST_M700:-192.168.1.8}" "${LXCMGR_HOST_5060:-192.168.1.6}"; do
     ssh-keyscan -H -T 5 "$host" >> "$KNOWN" 2>/dev/null || true
   done
   chown "$APP_USER:$APP_USER" "$KNOWN"
