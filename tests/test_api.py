@@ -140,6 +140,22 @@ def test_html_index_redirects_when_anonymous(client):
     assert "/login" in r.headers["location"]
 
 
+def test_html_guest_page_renders_dicts(client, guest):
+    assert client.post("/api/v1/login", json=ADMIN).status_code == 200
+    r = client.get("/guest/100")
+    assert r.status_code == 200
+    assert "test-lxc" in r.text
+    assert "dell-5060" in r.text
+
+
+def test_html_index_table_after_login(client, guest):
+    assert client.post("/api/v1/login", json=ADMIN).status_code == 200
+    r = client.get("/")
+    assert r.status_code == 200
+    assert 'id="guest-table"' in r.text
+    assert ">100<" in r.text
+
+
 def test_change_password_via_session(client):
     assert client.post("/api/v1/login", json=ADMIN).status_code == 200
     r = client.post(
