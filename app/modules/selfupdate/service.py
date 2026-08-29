@@ -29,7 +29,7 @@ from ...core.version import APP_VERSION
 
 _TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 _REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-_CACHE_TTL_S = 6 * 60 * 60
+_CACHE_TTL_S = 24 * 60 * 60
 _GITHUB = "https://api.github.com"
 _UA = "lxc-manager-selfupdate"
 

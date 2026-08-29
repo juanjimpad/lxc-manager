@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-app-version="{{ app_version }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,9 +22,7 @@
   </hgroup>
 
   <h2>{{ t.settings_version }}</h2>
-  <div id="settings-version">
-    <p>{{ t.settings_version }}: <strong>{{ app_version }}</strong></p>
-  </div>
+  {% include "_settings_version.html" %}
   <button
     type="button"
     class="btn-md"

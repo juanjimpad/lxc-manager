@@ -5,6 +5,8 @@
       <span class="status-neutral">({{ t.self_update_disabled }})</span>
     {% elif update_available %}
       <span class="status-ok">{{ t.self_update_available }}</span>
+    {% elif latest and latest == current %}
+      <span class="status-ok">{{ t.self_update_up_to_date }}</span>
     {% endif %}
   </p>
   {% if update_available %}

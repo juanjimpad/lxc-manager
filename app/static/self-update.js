@@ -1,28 +1,50 @@
-/* Wait until the panel process has gone down and come back after a
-   self-update, then reload. Triggered by HX-Trigger: selfUpdateStarted. */
+/* After Confirm, wait until the new process is up (APP_VERSION changed)
+   and reload. A systemd restart can be faster than one failed fetch, so
+   "saw the server go down" is not required. */
 (function () {
+  var waiting = false;
+
   function sleep(ms) {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
 
+  function pageVersion() {
+    return document.documentElement.getAttribute("data-app-version") || "";
+  }
+
+  async function readCurrent() {
+    var r = await fetch("/api/v1/version", {
+      credentials: "same-origin",
+      redirect: "manual",
+    });
+    if (!r.ok) return null;
+    var j = await r.json();
+    return j.current || null;
+  }
+
   async function waitForRestart() {
-    var sawDown = false;
-    var deadline = Date.now() + 120000;
+    if (waiting) return;
+    waiting = true;
+    var before = pageVersion();
+    var deadline = Date.now() + 180000;
     while (Date.now() < deadline) {
-      await sleep(2000);
+      await sleep(1500);
       try {
-        var r = await fetch("/", { credentials: "same-origin", redirect: "manual" });
-        if (sawDown && (r.ok || r.status === 303 || r.status === 302)) {
+        var current = await readCurrent();
+        if (current && before && current !== before) {
+          window.location.reload();
+          return;
+        }
+        if (current && !before) {
           window.location.reload();
           return;
         }
       } catch (e) {
-        sawDown = true;
+        /* still down */
       }
     }
+    window.location.reload();
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.addEventListener("selfUpdateStarted", waitForRestart);
-  });
+  document.addEventListener("selfUpdateStarted", waitForRestart, true);
 })();

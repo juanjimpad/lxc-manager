@@ -65,7 +65,10 @@ async def self_update_now(
             f'<span>{html.escape(t["self_update_installing"])} {html.escape(tag)}</span>'
             f"</div>"
         ),
-        headers={"HX-Trigger": "selfUpdateStarted"},
+        headers={
+            "HX-Trigger": "selfUpdateStarted",
+            "HX-Trigger-After-Settle": "selfUpdateStarted",
+        },
     )
 
 

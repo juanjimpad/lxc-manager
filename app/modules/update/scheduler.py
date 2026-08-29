@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -127,9 +129,12 @@ def start() -> None:
     scheduler.add_job(
         selfupdate.refresh_cache,
         "interval",
-        hours=6,
+        hours=24,
         id="selfupdate-check",
-        next_run_time=None,
+        # First pass ~1 min after boot so a just-restarted panel fills
+        # the cache; later ticks are daily. refresh_cache never applies.
+        next_run_time=datetime.now(scheduler.timezone) + timedelta(minutes=1),
+        replace_existing=True,
     )
     sync_guests_and_schedules()  # first pass, synchronous, before starting
     scheduler.start()

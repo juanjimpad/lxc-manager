@@ -249,3 +249,50 @@ def test_settings_check_shows_apply_button(client, monkeypatch):
     assert "1.2.0" in r.text
     assert banner.status_code == 200
     assert 'hx-post="/self-update"' in banner.text
+
+
+def test_settings_shows_up_to_date_when_current_matches_latest(client, monkeypatch):
+    import re
+
+    monkeypatch.setattr(config, "SELF_UPDATE_ENABLED", True)
+    monkeypatch.setattr(service, "APP_VERSION", "1.1.4")
+    monkeypatch.setattr(
+        service, "_latest_from_github", lambda: ("1.1.4", "v1.1.4")
+    )
+    with patch.object(service, "_cache", {"at": 0.0, "latest": None, "tag": None}):
+        assert client.post("/api/v1/login", json={
+            "username": "admin", "password": "test-password-ok",
+        }).status_code == 200
+        page = client.get("/settings")
+        token = re.search(r'X-CSRF-Token": "([^"]+)"', page.text).group(1)
+        r = client.post("/settings/check-update", headers={"X-CSRF-Token": token})
+        banner = client.get("/partials/self-update")
+    assert "Up to date" in page.text
+    assert "Up to date" in r.text
+    assert 'hx-post="/self-update"' not in r.text
+    assert "self-update-banner-empty" in banner.text
+    assert "New version" not in banner.text
+
+
+def test_selfupdate_cache_ttl_is_one_day():
+    assert service._CACHE_TTL_S == 24 * 60 * 60
+
+
+def test_apply_response_triggers_browser_reload(client, monkeypatch):
+    monkeypatch.setattr(config, "SELF_UPDATE_ENABLED", True)
+    monkeypatch.setattr(service, "APP_VERSION", "1.0.3")
+    monkeypatch.setattr(
+        service, "_latest_from_github", lambda: ("1.2.0", "v1.2.0")
+    )
+    monkeypatch.setattr(service, "apply", lambda tag: None)
+    with patch.object(service, "_cache", {"at": 0.0, "latest": None, "tag": None}):
+        assert client.post("/api/v1/login", json={
+            "username": "admin", "password": "test-password-ok",
+        }).status_code == 200
+        page = client.get("/settings")
+        import re
+        token = re.search(r'X-CSRF-Token": "([^"]+)"', page.text).group(1)
+        r = client.post("/self-update", headers={"X-CSRF-Token": token})
+    assert r.status_code == 200
+    assert r.headers.get("HX-Trigger") == "selfUpdateStarted"
+    assert r.headers.get("HX-Trigger-After-Settle") == "selfUpdateStarted"

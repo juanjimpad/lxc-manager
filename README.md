@@ -4,7 +4,7 @@
 
 # lxc-manager
 
-[![Version](https://img.shields.io/badge/Version-1.1.3-informational)](https://github.com/juanjimpad/lxc-manager)
+[![Version](https://img.shields.io/badge/Version-1.1.4-informational)](https://github.com/juanjimpad/lxc-manager)
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-orange.svg)](./LICENSE)
 [![Built with Cursor Grok 4.5](https://img.shields.io/badge/Built%20with-Cursor%20Grok%204.5-000000)](https://cursor.com)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/juanjimpad)
@@ -191,11 +191,14 @@ Guest apt jobs are unrelated: this only replaces **this** program.
 The live install is a copy of `app/` + `requirements.txt`, not a git
 checkout. A newer **semver tag** (`v1.1.0`) on
 `github.com/juanjimpad/lxc-manager` shows a sticky bar (logged-in pages
-only). Confirm downloads that tag's tarball, **replaces the whole
+only). The panel checks GitHub **once a day** (and when you click
+Check for updates). It **only proposes** — it never installs by itself.
+Confirm downloads that tag's tarball, **replaces the whole
 `app/` tree** (files removed in the new release disappear — it is not
 a merge), runs `pip install -r requirements.txt`, and exits. systemd
-`Restart=always` brings uvicorn back. `.env` and the SQLite DB are not
-touched.
+`Restart=always` brings uvicorn back; the open tab reloads when the
+new version is serving. `.env` and the SQLite DB are not touched.
+If current already matches latest, Settings shows **Up to date**.
 
 The host agent (`agent/lxc-manager-agent.sh` on each Proxmox node) and
 a changed systemd unit are **not** part of that apply — re-run

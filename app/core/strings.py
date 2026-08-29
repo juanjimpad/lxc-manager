@@ -121,6 +121,7 @@ t = {
     "self_update_confirm": "Download this version and restart the panel? The guest update agent on Proxmox hosts is not changed.",
     "self_update_installing": "Downloading and installing",
     "self_update_none": "Already up to date.",
+    "self_update_up_to_date": "Up to date",
     "self_update_disabled": "Panel self-update is disabled.",
     "self_update_error": "Update failed",
     "settings_version": "Panel version",
