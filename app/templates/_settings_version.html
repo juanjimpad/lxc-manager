@@ -7,4 +7,14 @@
       <span class="status-ok">{{ t.self_update_available }}</span>
     {% endif %}
   </p>
+  {% if update_available %}
+  <button
+    type="button"
+    class="btn-md"
+    hx-post="/self-update"
+    hx-target="#self-update-banner"
+    hx-swap="outerHTML"
+    hx-confirm="{{ t.self_update_confirm }}"
+    hx-disabled-elt="this">{{ t.self_update_button }}</button>
+  {% endif %}
 </div>

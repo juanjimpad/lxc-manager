@@ -28,6 +28,7 @@ async def settings_check_update(
     return templates.TemplateResponse(
         "_settings_version.html",
         {"request": request, **st},
+        headers={"HX-Trigger": "refreshSelfUpdateBanner"},
     )
 
 

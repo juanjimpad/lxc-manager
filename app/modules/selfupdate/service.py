@@ -94,6 +94,7 @@ def _latest_from_github() -> tuple[str | None, str | None]:
 
 
 def refresh_cache() -> None:
+    global _last_error
     if not config.SELF_UPDATE_ENABLED:
         return
     try:
@@ -102,9 +103,13 @@ def refresh_cache() -> None:
             _cache["at"] = time.time()
             _cache["latest"] = latest
             _cache["tag"] = tag
+            _last_error = None
     except Exception:
-        with _lock:
-            _cache["at"] = time.time()
+        # Leave `at` alone so the next status() still retries GitHub.
+        # Updating `at` here made a failed fetch look fresh and hid the
+        # banner until the 6h TTL — Check for updates then showed a
+        # version with no Apply button.
+        return
 
 
 def status(*, force: bool = False) -> dict:

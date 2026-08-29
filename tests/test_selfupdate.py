@@ -12,6 +12,16 @@ from app.core.version import APP_VERSION
 from app.modules.selfupdate import service
 
 
+@pytest.fixture(autouse=True)
+def _reset_selfupdate_state():
+    service._last_error = None
+    service._applying = False
+    service._cache.update({"at": 0.0, "latest": None, "tag": None})
+    yield
+    service._last_error = None
+    service._applying = False
+
+
 def _tarball(tmp_path: Path, version: str, extra_app_file: str | None = "fresh.txt") -> bytes:
     root = tmp_path / f"lxc-manager-v{version}"
     app = root / "app" / "core"
@@ -145,3 +155,27 @@ def test_banner_empty_when_disabled(client):
     r = client.get("/partials/self-update")
     assert r.status_code == 200
     assert "self-update-banner-empty" in r.text or "New version" not in r.text
+
+
+def test_settings_check_shows_apply_button(client, monkeypatch):
+    import re
+
+    monkeypatch.setattr(config, "SELF_UPDATE_ENABLED", True)
+    monkeypatch.setattr(service, "APP_VERSION", "1.0.3")
+    monkeypatch.setattr(
+        service, "_latest_from_github", lambda: ("1.2.0", "v1.2.0")
+    )
+    with patch.object(service, "_cache", {"at": 0.0, "latest": None, "tag": None}):
+        assert client.post("/api/v1/login", json={
+            "username": "admin", "password": "test-password-ok",
+        }).status_code == 200
+        page = client.get("/settings")
+        token = re.search(r'X-CSRF-Token": "([^"]+)"', page.text).group(1)
+        r = client.post("/settings/check-update", headers={"X-CSRF-Token": token})
+        banner = client.get("/partials/self-update")
+    assert r.status_code == 200
+    assert 'hx-post="/self-update"' in r.text
+    assert r.headers.get("HX-Trigger") == "refreshSelfUpdateBanner"
+    assert "1.2.0" in r.text
+    assert banner.status_code == 200
+    assert 'hx-post="/self-update"' in banner.text
