@@ -161,6 +161,17 @@ def test_html_index_table_after_login(client, guest):
     assert "https://github.com/juanjimpad/lxc-manager" in r.text
 
 
+def test_html_settings_matches_other_page_container(client):
+    assert client.post("/api/v1/login", json=ADMIN).status_code == 200
+    index = client.get("/")
+    settings = client.get("/settings")
+    assert settings.status_code == 200
+    assert 'class="container"' in settings.text
+    assert "max-width: 24rem" not in settings.text
+    assert 'class="settings-form"' in settings.text
+    assert index.text.count('class="container"') >= 1
+
+
 def test_change_password_via_session(client):
     assert client.post("/api/v1/login", json=ADMIN).status_code == 200
     r = client.post(

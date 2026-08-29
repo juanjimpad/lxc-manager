@@ -80,6 +80,20 @@ body > main {
   flex: 1 0 auto;
 }
 
+/* Pico's 1536px breakpoint stretches .container to 1450px. Cap every
+   page at 1200px so Settings matches Index/Guest and none of them
+   sprawl on ultrawide. */
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1200px;
+  }
+}
+
+/* Password fields at full container width are hard to read. */
+.settings-form {
+  max-width: 28rem;
+}
+
 a {
   font-weight: 500;
   text-decoration: none;

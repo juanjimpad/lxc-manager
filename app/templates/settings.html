@@ -14,7 +14,7 @@
 <script src="/static/self-update.js?v={{ asset_v }}"></script>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
-<main class="container" style="max-width: 24rem;">
+<main class="container">
   {% include "_nav.html" %}
   <hgroup>
     <h1>{{ t.settings_title }}</h1>
@@ -32,7 +32,7 @@
     hx-disabled-elt="this">{{ t.check_updates }}</button>
 
   <h2>{{ t.change_password_title }}</h2>
-  <form hx-post="/settings/password" hx-target="#pw-feedback" hx-swap="innerHTML">
+  <form class="settings-form" hx-post="/settings/password" hx-target="#pw-feedback" hx-swap="innerHTML">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label>{{ t.current_password }}
       <input type="password" name="current_password" required autocomplete="current-password" maxlength="256">
