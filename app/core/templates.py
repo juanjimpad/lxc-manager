@@ -5,9 +5,9 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
-from . import auth
+from . import auth, config
 from .strings import t
-from .version import ASSET_VERSION
+from .version import APP_VERSION, ASSET_VERSION
 
 _templates_dir = Path(__file__).resolve().parent.parent / "templates"
 _base = Jinja2Templates(directory=str(_templates_dir))
@@ -23,6 +23,8 @@ def _human_mem(n_bytes: int) -> str:
 _base.env.filters["human_mem"] = _human_mem
 _base.env.globals["t"] = t
 _base.env.globals["asset_v"] = ASSET_VERSION
+_base.env.globals["app_version"] = APP_VERSION
+_base.env.globals["repo_url"] = f"https://github.com/{config.UPDATE_REPO}"
 
 
 class _CsrfTemplates:

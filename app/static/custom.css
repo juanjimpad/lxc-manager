@@ -68,6 +68,18 @@
   --status-warning: #d97706;
 }
 
+html {
+  height: 100%;
+}
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body > main {
+  flex: 1 0 auto;
+}
+
 a {
   font-weight: 500;
   text-decoration: none;
@@ -389,4 +401,37 @@ nav a.nav-brand:hover {
 }
 .self-update-banner-empty {
   display: none;
+}
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 1.15rem 1rem 1.4rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #9aa4b2;
+  background: transparent;
+  border: 0;
+}
+.site-footer a.site-footer-github {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  opacity: 0.8;
+  font-weight: 400;
+  text-decoration: none;
+}
+.site-footer a.site-footer-github:hover {
+  color: var(--pico-muted-color);
+  opacity: 1;
+  text-decoration: none;
+}
+.site-footer svg {
+  display: block;
 }

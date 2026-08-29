@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from app.core import auth, db
+from app.core.version import APP_VERSION
 
 ADMIN = {"username": "admin", "password": "test-password-ok"}
 
@@ -132,6 +133,8 @@ def test_html_login_page(client):
     r = client.get("/login")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
+    assert f"v{APP_VERSION}" in r.text
+    assert "https://github.com/juanjimpad/lxc-manager" in r.text
 
 
 def test_html_index_redirects_when_anonymous(client):
@@ -154,6 +157,8 @@ def test_html_index_table_after_login(client, guest):
     assert r.status_code == 200
     assert 'id="guest-table"' in r.text
     assert ">100<" in r.text
+    assert f"v{APP_VERSION}" in r.text
+    assert "https://github.com/juanjimpad/lxc-manager" in r.text
 
 
 def test_change_password_via_session(client):

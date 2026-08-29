@@ -3,5 +3,5 @@
 APP_VERSION is the product release (semver). ASSET_VERSION is only a
 cache-buster for /static — bump it when custom.css or vendored assets
 change, independent of the app release."""
-APP_VERSION = "1.1.0"
-ASSET_VERSION = "23"
+APP_VERSION = "1.1.1"
+ASSET_VERSION = "24"
