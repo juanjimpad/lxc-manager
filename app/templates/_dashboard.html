@@ -1,0 +1,24 @@
+<div id="dashboard" hx-get="/partials/dashboard" hx-trigger="every 15s" hx-swap="outerHTML">
+  <div class="summary-row">
+    <span class="status-ok">{{ online_count }} {{ t.clients_online }}</span>
+    <span class="{{ 'status-failed' if offline_count else 'status-neutral' }}">{{ offline_count }} {{ t.clients_offline }}</span>
+  </div>
+
+  {% if not clients %}
+    <article>
+      <p style="margin:0;">{{ t.no_clients_yet }}</p>
+    </article>
+  {% else %}
+    {% include "_client_cards.html" %}
+  {% endif %}
+
+  {% if pve_enabled and guests %}
+    <div class="section-header" style="margin-top:2rem;">
+      <hgroup>
+        <h2>{{ t.guests_heading }}</h2>
+        <p>{{ t.guests_subtitle }}</p>
+      </hgroup>
+    </div>
+    {% include "_guests_table.html" %}
+  {% endif %}
+</div>

@@ -3,3 +3,7 @@
 __pycache__/
 *.db
 *.pyc
+CLUSTER_KEY
+INITIAL_ADMIN_PASSWORD
+RESTART_REQUESTED
+

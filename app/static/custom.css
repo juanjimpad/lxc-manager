@@ -356,3 +356,74 @@ button.btn-link {
 button.btn-link:hover {
   color: var(--pico-primary-hover);
 }
+
+/* Dashboard: Grafana/Portainer-ish cards on the same Unraid-light page. */
+.summary-row {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0.25rem 0 1rem;
+  font-size: 0.9rem;
+}
+
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+  gap: 1rem;
+}
+
+.client-card {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+}
+
+.client-card h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.client-card hgroup p {
+  font-size: 0.8rem;
+  margin: 0.15rem 0 0;
+}
+
+.meter-row {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr 2.6rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+  font-size: 0.8rem;
+}
+
+.meter {
+  height: 0.45rem;
+  background: var(--pico-secondary-background);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--pico-primary);
+  border-radius: 99px;
+}
+
+.meter-value {
+  text-align: right;
+  color: var(--pico-muted-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+nav a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--pico-h1-color);
+}

@@ -28,11 +28,11 @@ def _guests_with_status():
     return guests, jobs, security, backups
 
 
-@router.get("/")
-def index(request: Request, _=Depends(auth.require_login)):
+@router.get("/guests")
+def guests_index(request: Request, _=Depends(auth.require_login)):
     guests, jobs, security, backups = _guests_with_status()
     return templates.TemplateResponse(
-        "index.html",
+        "guests.html",
         {"request": request, "guests": guests, "jobs": jobs, "security": security, "backups": backups},
     )
 
@@ -52,6 +52,12 @@ async def refresh_guests(
     _=Depends(auth.require_login),
     _csrf=Depends(auth.require_csrf),
 ):
+    if not config.PVE_ENABLED:
+        guests, jobs, security, backups = _guests_with_status()
+        return templates.TemplateResponse(
+            "_guests_table.html",
+            {"request": request, "guests": guests, "jobs": jobs, "security": security, "backups": backups},
+        )
     scheduler.sync_guests_and_schedules()
     guests, jobs, security, backups = _guests_with_status()
     return templates.TemplateResponse(
@@ -168,7 +174,7 @@ async def guest_schedule(
     # job in one pass, so one bad cron string saved here would raise partway
     # through and leave every guest after it unscheduled — not just this one.
     try:
-        CronTrigger.from_crontab(cron, timezone="Europe/Madrid")
+        CronTrigger.from_crontab(cron, timezone=config.TIMEZONE)
     except ValueError:
         return f'<span class="status-failed">{html.escape(t["invalid_cron"])}</span>'
 

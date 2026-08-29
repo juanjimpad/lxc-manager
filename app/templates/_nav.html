@@ -1,0 +1,17 @@
+<nav>
+  <ul>
+    <li><a href="/" {% if request.url.path == '/' %}aria-current="page"{% endif %}>{{ t.nav_dashboard }}</a></li>
+    {% if pve_enabled %}
+    <li><a href="/guests" {% if request.url.path.startswith('/guest') %}aria-current="page"{% endif %}>{{ t.nav_guests }}</a></li>
+    {% endif %}
+  </ul>
+  <ul>
+    <li><a href="/settings">{{ t.nav_settings }}</a></li>
+    <li>
+      <form method="post" action="/logout" style="display:inline;margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn-link">{{ t.nav_logout }}</button>
+      </form>
+    </li>
+  </ul>
+</nav>

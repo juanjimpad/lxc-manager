@@ -13,12 +13,99 @@
 <script src="/static/htmx.min.js"></script>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
-<main class="container" style="max-width: 24rem;">
+<main class="container" style="max-width: 32rem;">
+  {% include "_nav.html" %}
   <p><a href="/">{{ t.back }}</a></p>
   <hgroup>
     <h1>{{ t.settings_title }}</h1>
-    <p>{{ t.session_label }}: {{ user }}</p>
+    <p>{{ t.session_label }}: {{ user }} · {{ t.current_version }} {{ app_version }} · {{ revision }}</p>
   </hgroup>
+
+  <article>
+    <h2>{{ t.section_cluster }}</h2>
+    <p style="font-size:0.9rem;color:var(--pico-muted-color);">{{ t.cluster_help }}</p>
+    <label>{{ t.section_cluster }}
+      <input type="text" readonly value="{{ cluster_key }}" id="cluster-key">
+    </label>
+    {% if public_url %}
+    <p style="font-size:0.85rem;">
+      {{ t.cluster_install_hint }}:
+      <code>./client/install.sh --url {{ public_url }} --key {{ cluster_key }}</code>
+    </p>
+    {% endif %}
+  </article>
+
+  <article>
+    <h2>{{ t.section_telegram }}</h2>
+    <form hx-post="/settings/telegram" hx-target="#tg-feedback" hx-swap="innerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>{{ t.telegram_token }}
+        <input type="password" name="telegram_token" value="{{ telegram_token }}" autocomplete="off">
+      </label>
+      <label>{{ t.telegram_chat_id }}
+        <input type="text" name="telegram_chat_id" value="{{ telegram_chat_id }}" autocomplete="off">
+      </label>
+      <fieldset>
+        <legend>{{ t.telegram_events }}</legend>
+        <label class="switch-label">
+          <input type="checkbox" name="notify_client_offline" role="switch" {{ 'checked' if notify_client_offline else '' }}>
+          {{ t.notify_client_offline }}
+        </label>
+        <label class="switch-label">
+          <input type="checkbox" name="notify_client_online" role="switch" {{ 'checked' if notify_client_online else '' }}>
+          {{ t.notify_client_online }}
+        </label>
+        <label class="switch-label">
+          <input type="checkbox" name="notify_update_ok" role="switch" {{ 'checked' if notify_update_ok else '' }}>
+          {{ t.notify_update_ok }}
+        </label>
+        <label class="switch-label">
+          <input type="checkbox" name="notify_update_failed" role="switch" {{ 'checked' if notify_update_failed else '' }}>
+          {{ t.notify_update_failed }}
+        </label>
+        <label class="switch-label">
+          <input type="checkbox" name="notify_self_update" role="switch" {{ 'checked' if notify_self_update else '' }}>
+          {{ t.notify_self_update }}
+        </label>
+      </fieldset>
+      <button type="submit" class="btn-md">{{ t.save_button }}</button>
+    </form>
+    <form hx-post="/settings/telegram/test" hx-target="#tg-feedback" hx-swap="innerHTML" style="margin-top:0.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn-md">{{ t.telegram_test }}</button>
+    </form>
+    <span id="tg-feedback"></span>
+  </article>
+
+  <article>
+    <h2>{{ t.section_self_update }}</h2>
+    {% if update_info %}
+      <div class="stat-row">
+        <span class="stat-label">{{ t.current_version }}</span>
+        <span>{{ update_info.version }} ({{ update_info.local }})</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">{{ update_info.remote_name }}/{{ update_info.branch }}</span>
+        <span>{{ update_info.remote }}{% if update_info.up_to_date %} · {{ t.update_up_to_date }}{% else %} · {{ update_info.behind }}{% endif %}</span>
+      </div>
+      {% if update_info.log %}
+      <pre>{{ update_info.log }}</pre>
+      {% endif %}
+    {% elif update_error %}
+      <p class="status-warning">{{ update_error }}</p>
+    {% endif %}
+    <div class="action-row">
+      <form hx-post="/settings/update/check" hx-target="#upd-feedback" hx-swap="innerHTML" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn-md">{{ t.update_check }}</button>
+      </form>
+      <form hx-post="/settings/update/apply" hx-target="#upd-feedback" hx-swap="innerHTML" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn-md">{{ t.update_apply }}</button>
+      </form>
+    </div>
+    <span id="upd-feedback"></span>
+  </article>
 
   <h2>{{ t.change_password_title }}</h2>
   <form hx-post="/settings/password" hx-target="#pw-feedback" hx-swap="innerHTML">

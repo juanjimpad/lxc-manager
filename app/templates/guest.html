@@ -17,7 +17,8 @@
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container">
-  <p><a href="/">{{ t.back }}</a></p>
+  {% include "_nav.html" %}
+  <p><a href="/guests">{{ t.back }}</a></p>
   <hgroup>
     <h1>{{ guest.name }} <small>({{ guest.vmid }})</small></h1>
     <p>{{ guest.node }} · {{ guest.app_type }}</p>

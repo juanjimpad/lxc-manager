@@ -6,7 +6,7 @@ from ..backups import status as backup_status
 from ..security import audit as security_audit
 from . import runner
 
-scheduler = BackgroundScheduler(timezone="Europe/Madrid")
+scheduler = BackgroundScheduler(timezone=config.TIMEZONE)
 
 # defaults on deploy: 5060 (less critical) before m700, early Saturday
 # mornings — see docs/design/machines/lxc-manager.md in the homelab
@@ -104,7 +104,7 @@ def reload_jobs() -> None:
         if row["enabled"]:
             scheduler.add_job(
                 runner.run_guest,
-                CronTrigger.from_crontab(row["cron"], timezone="Europe/Madrid"),
+                CronTrigger.from_crontab(row["cron"], timezone=config.TIMEZONE),
                 args=[row["vmid"]],
                 id=job_id,
                 replace_existing=True,
@@ -112,16 +112,29 @@ def reload_jobs() -> None:
 
 
 def start() -> None:
+    from ..clients import store as client_store
+
     scheduler.add_job(
-        sync_guests_and_schedules, "interval", hours=1, id="discovery", next_run_time=None
-    )
-    # weekly security sweep, Sundays — doesn't collide with Saturday's
-    # updates/snapshots. Also available on demand from each guest page.
-    scheduler.add_job(
-        security_audit.audit_all_guests,
-        CronTrigger.from_crontab("0 3 * * 0", timezone="Europe/Madrid"),
-        id="security-audit-weekly",
+        client_store.refresh_offline_status,
+        "interval",
+        seconds=30,
+        id="client-offline-watch",
         replace_existing=True,
     )
-    sync_guests_and_schedules()  # first pass, synchronous, before starting
+    if config.PVE_ENABLED:
+        scheduler.add_job(
+            sync_guests_and_schedules, "interval", hours=1, id="discovery", next_run_time=None
+        )
+        # weekly security sweep, Sundays — doesn't collide with Saturday's
+        # updates/snapshots. Also available on demand from each guest page.
+        scheduler.add_job(
+            security_audit.audit_all_guests,
+            CronTrigger.from_crontab("0 3 * * 0", timezone=config.TIMEZONE),
+            id="security-audit-weekly",
+            replace_existing=True,
+        )
+        try:
+            sync_guests_and_schedules()  # first pass, synchronous, before starting
+        except Exception as exc:  # noqa: BLE001 — manager must still serve the dashboard
+            print(f"[homelab-manager] Proxmox discovery skipped: {exc}")
     scheduler.start()

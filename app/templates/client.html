@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t.app_name }}</title>
+<title>{{ t.app_name }} · {{ client.name }}</title>
 <link rel="icon" href="/static/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png?v={{ asset_v }}">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v={{ asset_v }}">
@@ -11,29 +11,15 @@
 <link rel="stylesheet" href="/static/pico.min.css">
 <link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
 <script src="/static/htmx.min.js"></script>
+<style>
+  pre { max-height: 16rem; overflow-y: auto; }
+</style>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container">
   {% include "_nav.html" %}
-  <div class="section-header">
-    <hgroup>
-      <h1>{{ t.app_name }}</h1>
-      <p>{{ t.index_subtitle }}</p>
-    </hgroup>
-    <button
-      hx-get="/partials/dashboard"
-      hx-target="#dashboard"
-      hx-swap="outerHTML"
-      hx-indicator="#refresh-indicator"
-      hx-disabled-elt="this"
-      class="btn-icon btn-icon-lg"
-      title="{{ t.refresh }}"
-      aria-label="{{ t.refresh }}">
-      {{ t.icon_check }}
-    </button>
-  </div>
-  <span id="refresh-indicator" class="htmx-indicator" style="font-size:0.8rem;">{{ t.refreshing }}</span>
-  {% include "_dashboard.html" %}
+  <p><a href="/">{{ t.back }}</a></p>
+  {% include "_client_body.html" %}
 </main>
 </body>
 </html>

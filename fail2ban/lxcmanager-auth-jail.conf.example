@@ -1,7 +1,7 @@
 [lxcmanager-auth]
 enabled  = true
 backend  = systemd
-journalmatch = _SYSTEMD_UNIT=lxc-manager.service
+journalmatch = _SYSTEMD_UNIT=homelab-manager.service + _SYSTEMD_UNIT=lxc-manager.service
 filter   = lxcmanager-auth
 maxretry = 5
 findtime = 600

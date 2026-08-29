@@ -1,0 +1,147 @@
+<div
+  id="client-body"
+  hx-get="/partials/client/{{ client.id }}"
+  hx-trigger="{{ 'every 3s' if pending else 'every 15s, jobQueued from:body' }}"
+  hx-swap="outerHTML">
+  <hgroup>
+    <h1>{{ client.name }}</h1>
+    <p>{{ client.platform }} · {{ client.os_id }} {{ client.os_version }} · {{ client.hostname }}</p>
+    <p class="guest-update-meta">
+      <span class="{{ 'status-ok' if client.online else 'status-failed' }}">
+        {{ t.status_online if client.online else t.status_offline }}
+      </span>
+      <span><strong>{{ t.col_cpu }}:</strong> {{ client.cpu_percent | pct }}</span>
+      <span><strong>{{ t.col_ram }}:</strong> {{ client.mem_used | human_mem }} / {{ client.mem_total | human_mem }}</span>
+      <span><strong>{{ t.col_temp }}:</strong>
+        {% if client.temp_c is not none %}{{ '%.1f'|format(client.temp_c) }}°C{% else %}{{ t.status_never }}{% endif %}
+      </span>
+    </p>
+    <small style="color: var(--pico-muted-color)">
+      {{ client.ip }} · {{ t.uptime }}: {{ client.uptime_seconds | human_uptime }}
+      · {{ t.load }}: {{ client.loadavg or t.status_never }}
+      · {{ t.version_label }} {{ client.version or t.status_never }}
+      · {{ client.last_seen or t.status_never }}
+    </small>
+  </hgroup>
+
+  <article>
+    <div class="section-header">
+      <h2>{{ t.section_update }}</h2>
+    </div>
+    <div class="action-row">
+      {% if 'apt' in client.capabilities or 'synology' in client.capabilities or 'unraid' in client.capabilities %}
+      <form hx-post="/client/{{ client.id }}/run" hx-target="#job-feedback" hx-swap="innerHTML" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="kind" value="sys-update">
+        <button type="submit" class="btn-md" {% if pending %}disabled{% endif %}>{{ t.update_host }}</button>
+      </form>
+      {% endif %}
+      {% if 'docker' in client.capabilities %}
+      <form hx-post="/client/{{ client.id }}/run" hx-target="#job-feedback" hx-swap="innerHTML" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="kind" value="docker-update">
+        <button type="submit" class="btn-md" {% if pending %}disabled{% endif %}>{{ t.update_docker }}</button>
+      </form>
+      {% endif %}
+      <form hx-post="/client/{{ client.id }}/run" hx-target="#job-feedback" hx-swap="innerHTML" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="kind" value="self-update">
+        <button type="submit" class="btn-md" {% if pending %}disabled{% endif %}>{{ t.update_self }}</button>
+      </form>
+    </div>
+    <p style="font-size:0.85rem;color:var(--pico-muted-color);margin:0.5rem 0 0;">
+      {{ t.capabilities }}: {{ client.capabilities | join(', ') if client.capabilities else t.status_never }}
+    </p>
+    <span id="job-feedback"></span>
+  </article>
+
+  {% if docker %}
+  <article>
+    <h2>{{ t.section_docker }}</h2>
+    <table>
+      <thead><tr><th>{{ t.col_resource }}</th><th>{{ t.col_status }}</th><th></th></tr></thead>
+      <tbody>
+      {% for r in docker %}
+        <tr>
+          <td>{{ r.name }}</td>
+          <td><span class="{{ 'status-ok' if r.status == 'running' else 'status-neutral' }}">{{ r.status }}</span></td>
+          <td>
+            <form hx-post="/client/{{ client.id }}/run" hx-target="#job-feedback" hx-swap="innerHTML">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="kind" value="docker-update">
+              <input type="hidden" name="target" value="{{ r.resource_id }}">
+              <button type="submit" class="btn-icon" title="{{ t.update_docker }}" {% if pending %}disabled{% endif %}>{{ t.icon_run }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  {% endif %}
+
+  {% if lxc %}
+  <article>
+    <h2>{{ t.section_lxc }}</h2>
+    <table>
+      <thead><tr><th>{{ t.col_vmid }}</th><th>{{ t.col_name }}</th><th>{{ t.col_status }}</th><th></th></tr></thead>
+      <tbody>
+      {% for r in lxc %}
+        <tr>
+          <td>{{ r.resource_id }}</td>
+          <td>{{ r.name }}</td>
+          <td><span class="{{ 'status-ok' if r.status == 'running' else 'status-neutral' }}">{{ r.status }}</span></td>
+          <td>
+            <form hx-post="/client/{{ client.id }}/run" hx-target="#job-feedback" hx-swap="innerHTML">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="kind" value="lxc-update">
+              <input type="hidden" name="target" value="{{ r.resource_id }}">
+              <button type="submit" class="btn-icon" title="{{ t.run_now }}" {% if pending %}disabled{% endif %}>{{ t.icon_run }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  {% endif %}
+
+  {% if qemu %}
+  <article>
+    <h2>{{ t.section_vms }}</h2>
+    <table>
+      <thead><tr><th>{{ t.col_vmid }}</th><th>{{ t.col_name }}</th><th>{{ t.col_status }}</th></tr></thead>
+      <tbody>
+      {% for r in qemu %}
+        <tr>
+          <td>{{ r.resource_id }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.status }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  {% endif %}
+
+  <article>
+    <h2>{{ t.section_jobs }}</h2>
+    {% for j in jobs %}
+    <details>
+      <summary>
+        <span class="{{ 'status-ok' if j.status == 'ok' else ('status-failed' if j.status == 'failed' else 'status-neutral') }}">
+          {%- if j.status == 'ok' %}{{ t.status_ok }}
+          {%- elif j.status == 'failed' %}{{ t.status_failed }}
+          {%- elif j.status == 'running' %}{{ t.status_running }}
+          {%- else %}{{ j.status }}
+          {%- endif %}
+        </span>
+        — {{ j.kind }}{% if j.target %} {{ j.target }}{% endif %} — {{ j.created_at }}
+      </summary>
+      <pre>{{ j.detail or j.summary or '' }}</pre>
+    </details>
+    {% else %}
+    <p><em>{{ t.no_jobs_yet }}</em></p>
+    {% endfor %}
+  </article>
+</div>

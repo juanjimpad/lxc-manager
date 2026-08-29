@@ -7,28 +7,32 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from .core import auth, db
+from .core import auth, cluster, config, db
 from .core.strings import t
 from .core.templates import templates
 from .modules.backups import router as backups_router
+from .modules.clients import router as clients_router
+from .modules.dashboard import router as dashboard_router
 from .modules.security import router as security_router
+from .modules.settings import router as settings_router
 from .modules.update import router as update_router
 from .modules.update import scheduler as update_scheduler
 
-app = FastAPI(title="lxc-manager")
+app = FastAPI(title="homelab-manager")
 
 _here = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=str(_here / "static")), name="static")
 
-SESSION_SECRET = os.environ.get("LXCMGR_SESSION_SECRET")
+SESSION_SECRET = config.SESSION_SECRET
 if not SESSION_SECRET:
-    raise RuntimeError("LXCMGR_SESSION_SECRET is not set — see .env.example")
+    raise RuntimeError("HLMGR_SESSION_SECRET (or LXCMGR_SESSION_SECRET) is not set — see .env.example")
 # https_only=True: Secure cookie — browsers only send it on HTTPS (NPM).
 # same_site=lax: blocks cross-site POST CSRF for the session cookie.
+# Tests run over HTTP, so https_only is off when HLMGR_TESTING=1.
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
-    https_only=True,
+    https_only=os.environ.get("HLMGR_TESTING") != "1",
     same_site="lax",
     max_age=60 * 60 * 12,
 )
@@ -57,8 +61,10 @@ def _login_required_handler(request: Request, exc: auth.LoginRequired):
 @app.on_event("startup")
 def _startup():
     db.init_db()
+    cluster.ensure_cluster_key()
     auth.seed_admin_if_empty()
-    update_scheduler.start()
+    if os.environ.get("HLMGR_TESTING") != "1":
+        update_scheduler.start()
 
 
 # --- auth (cross-cutting, doesn't belong to any module) --------------------
@@ -117,13 +123,6 @@ async def logout(request: Request, _csrf=Depends(auth.require_csrf)):
     return RedirectResponse("/login", status_code=303)
 
 
-@app.get("/settings")
-def settings_page(request: Request, _=Depends(auth.require_login)):
-    return templates.TemplateResponse(
-        "settings.html", {"request": request, "user": auth.current_user(request)}
-    )
-
-
 @app.post("/settings/password", response_class=HTMLResponse)
 async def settings_change_password(
     request: Request,
@@ -150,6 +149,10 @@ async def settings_change_password(
 
 # --- modules -----------------------------------------------------------
 
+app.include_router(dashboard_router.router)
+app.include_router(clients_router.router)
+app.include_router(clients_router.api_router)
+app.include_router(settings_router.router)
 app.include_router(update_router.router)
 app.include_router(security_router.router)
 app.include_router(backups_router.router)

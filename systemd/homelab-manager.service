@@ -1,5 +1,5 @@
 [Unit]
-Description=lxc-manager — Proxmox cluster update panel
+Description=homelab-manager — homelab dashboard and client orchestrator
 After=network-online.target
 Wants=network-online.target
 
@@ -9,6 +9,7 @@ User=lxcmgr
 Group=lxcmgr
 WorkingDirectory=/home/lxcmgr/lxc-manager
 EnvironmentFile=/home/lxcmgr/lxc-manager/.env
+Environment=HLMGR_TESTING=0
 # --forwarded-allow-ips: IP of the reverse proxy in front of this (NPM,
 # Traefik...) — without this, the app (and any fail2ban jail on its
 # log) sees the proxy's IP, not the real client's. Set to the real IP.

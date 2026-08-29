@@ -1,0 +1,17 @@
+[Unit]
+Description=homelab-client — reports metrics and runs jobs for homelab-manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Root: apt/docker/pct. The cluster key only authorizes HMAC to the manager;
+# this process never opens a remote shell.
+User=root
+EnvironmentFile=/etc/homelab-client/client.env
+ExecStart=/usr/bin/python3 /usr/local/lib/homelab-client/homelab_client.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

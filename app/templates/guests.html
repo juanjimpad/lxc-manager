@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t.app_name }}</title>
+<title>{{ t.app_name }} · {{ t.nav_guests }}</title>
 <link rel="icon" href="/static/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png?v={{ asset_v }}">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v={{ asset_v }}">
@@ -17,12 +17,12 @@
   {% include "_nav.html" %}
   <div class="section-header">
     <hgroup>
-      <h1>{{ t.app_name }}</h1>
-      <p>{{ t.index_subtitle }}</p>
+      <h1>{{ t.guests_heading }}</h1>
+      <p>{{ t.guests_subtitle }}</p>
     </hgroup>
     <button
-      hx-get="/partials/dashboard"
-      hx-target="#dashboard"
+      hx-post="/refresh"
+      hx-target="#guest-table"
       hx-swap="outerHTML"
       hx-indicator="#refresh-indicator"
       hx-disabled-elt="this"
@@ -33,7 +33,7 @@
     </button>
   </div>
   <span id="refresh-indicator" class="htmx-indicator" style="font-size:0.8rem;">{{ t.refreshing }}</span>
-  {% include "_dashboard.html" %}
+  {% include "_guests_table.html" %}
 </main>
 </body>
 </html>

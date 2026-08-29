@@ -1,0 +1,37 @@
+<div class="client-grid">
+{% for c in clients %}
+  <article class="client-card">
+    <div class="section-header">
+      <hgroup style="margin:0;">
+        <h2><a href="/client/{{ c.id }}">{{ c.name }}</a></h2>
+        <p>{{ c.platform }}{% if c.os_id %} · {{ c.os_id }}{% endif %}{% if c.os_version %} {{ c.os_version }}{% endif %}</p>
+      </hgroup>
+      <span class="{{ 'status-ok' if c.online else 'status-failed' }}">
+        {{ t.status_online if c.online else t.status_offline }}
+      </span>
+    </div>
+
+    <div class="meter-row">
+      <span class="stat-label">{{ t.col_cpu }}</span>
+      <div class="meter" title="{{ c.cpu_percent | pct }}">
+        <span style="width: {{ c.cpu_percent or 0 }}%"></span>
+      </div>
+      <span class="meter-value">{{ c.cpu_percent | pct }}</span>
+    </div>
+    <div class="meter-row">
+      <span class="stat-label">{{ t.col_ram }}</span>
+      <div class="meter" title="{{ c.mem_used | human_mem }} / {{ c.mem_total | human_mem }}">
+        <span style="width: {{ c.mem_percent or 0 }}%"></span>
+      </div>
+      <span class="meter-value">{{ c.mem_percent | pct }}</span>
+    </div>
+    <div class="stat-row" style="border-bottom:none;padding-bottom:0;">
+      <span class="stat-label">{{ t.col_temp }}</span>
+      <span>{% if c.temp_c is not none %}{{ '%.0f'|format(c.temp_c) }}°C{% else %}{{ t.status_never }}{% endif %}</span>
+    </div>
+    <small style="color: var(--pico-muted-color)">
+      {{ c.ip or t.status_never }} · {{ c.last_seen or t.status_never }}
+    </small>
+  </article>
+{% endfor %}
+</div>

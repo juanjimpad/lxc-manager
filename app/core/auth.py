@@ -47,8 +47,8 @@ def seed_admin_if_empty() -> None:
         row = conn.execute("SELECT COUNT(*) AS n FROM users").fetchone()
         if row["n"] > 0:
             return
-        username = os.environ.get("LXCMGR_ADMIN_USER", "admin")
-        password = os.environ.get("LXCMGR_ADMIN_PASSWORD")
+        username = os.environ.get("HLMGR_ADMIN_USER") or os.environ.get("LXCMGR_ADMIN_USER", "admin")
+        password = os.environ.get("HLMGR_ADMIN_PASSWORD") or os.environ.get("LXCMGR_ADMIN_PASSWORD")
         if not password:
             password = secrets.token_urlsafe(18)
             # Never print the password to the journal — write once to a
@@ -57,7 +57,7 @@ def seed_admin_if_empty() -> None:
             out.write_text(f"{username}\n{password}\n", encoding="utf-8")
             out.chmod(0o600)
             print(
-                f"[lxc-manager] admin user created ({username}); "
+                f"[homelab-manager] admin user created ({username}); "
                 f"initial password in {out} (mode 0600) — change it in /settings "
                 f"and delete that file"
             )
