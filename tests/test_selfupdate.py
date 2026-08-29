@@ -4,6 +4,7 @@ import tarfile
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
 import pytest
 
 from app.core import config
@@ -119,6 +120,75 @@ def test_apply_disabled(monkeypatch):
     monkeypatch.setattr(config, "SELF_UPDATE_ENABLED", False)
     with pytest.raises(SelfUpdateDisabled):
         service.apply("v1.2.0")
+
+
+class _FakeResp:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+        self.request = None
+
+    def json(self):
+        return self._payload
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise httpx.HTTPStatusError(
+                "error", request=self.request, response=self
+            )
+
+
+def _fake_github_client(*, tags, latest, tags_status=200, latest_status=200):
+    class _Client:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, params=None):
+            if url.endswith("/releases/latest"):
+                return _FakeResp(latest_status, latest)
+            if url.rstrip("/").endswith("/tags"):
+                return _FakeResp(tags_status, tags)
+            return _FakeResp(404, {})
+
+    return _Client
+
+
+def test_latest_uses_newest_tag_not_github_latest_release(monkeypatch):
+    """A GitHub Release of v1.1.0 must not hide newer tags like v1.1.2."""
+    monkeypatch.setattr(config, "UPDATE_REPO", "juanjimpad/lxc-manager")
+    fake = _fake_github_client(
+        tags=[
+            {"name": "v1.1.2"},
+            {"name": "v1.1.1"},
+            {"name": "v1.1.0"},
+            {"name": "v1.0.0"},
+        ],
+        latest={"tag_name": "v1.1.0"},
+    )
+    with patch.object(service.httpx, "Client", fake):
+        ver, tag = service._latest_from_github()
+    assert ver == "1.1.2"
+    assert tag == "v1.1.2"
+
+
+def test_latest_falls_back_to_github_release_when_tags_fail(monkeypatch):
+    monkeypatch.setattr(config, "UPDATE_REPO", "juanjimpad/lxc-manager")
+    fake = _fake_github_client(
+        tags=[],
+        latest={"tag_name": "v1.1.0"},
+        tags_status=404,
+        latest_status=200,
+    )
+    with patch.object(service.httpx, "Client", fake):
+        ver, tag = service._latest_from_github()
+    assert ver == "1.1.0"
+    assert tag == "v1.1.0"
 
 
 def test_status_newer_tag(monkeypatch):

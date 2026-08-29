@@ -4,7 +4,7 @@
 
 # lxc-manager
 
-[![Version](https://img.shields.io/badge/Version-1.1.2-informational)](https://github.com/juanjimpad/lxc-manager)
+[![Version](https://img.shields.io/badge/Version-1.1.3-informational)](https://github.com/juanjimpad/lxc-manager)
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-orange.svg)](./LICENSE)
 [![Built with Cursor Grok 4.5](https://img.shields.io/badge/Built%20with-Cursor%20Grok%204.5-000000)](https://cursor.com)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/juanjimpad)
@@ -206,7 +206,9 @@ a changed systemd unit are **not** part of that apply — re-run
 `owner/name`).
 
 Releases: bump `APP_VERSION` in `app/core/version.py` **and** push a
-matching `vX.Y.Z` tag, or the bar never offers the build.
+matching `vX.Y.Z` tag, or the bar never offers the build. "Latest" is
+the highest semver **git tag**, not GitHub's Latest Release (a tag
+alone is enough; creating a GitHub Release is optional).
 
 First time this feature exists on a box that was installed as 1.0.x:
 copy/install 1.1.0 once by hand (`./install.sh` as root, which also

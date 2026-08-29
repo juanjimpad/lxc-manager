@@ -68,29 +68,37 @@ def _headers() -> dict:
     return {"Accept": "application/vnd.github+json", "User-Agent": _UA}
 
 
+def _add_semver(
+    found: list[tuple[tuple[int, int, int], str]], name: str
+) -> None:
+    parsed = _semver(name)
+    if parsed:
+        found.append((parsed, "%d.%d.%d" % parsed))
+
+
 def _latest_from_github() -> tuple[str | None, str | None]:
-    """Return (version without v, tag with v) or (None, None)."""
+    """Return (version without v, tag with v) or (None, None).
+
+    Highest semver among git tags, merged with GitHub's latest Release.
+    ``/releases/latest`` is the newest *Release object*, not the newest
+    tag — ``git tag vX.Y.Z && git push --tags`` does not create one.
+    """
     repo = _repo()
+    found: list[tuple[tuple[int, int, int], str]] = []
     with httpx.Client(timeout=15.0, follow_redirects=True, headers=_headers()) as client:
+        tags = client.get(f"{_GITHUB}/repos/{repo}/tags", params={"per_page": 100})
+        if tags.status_code == 200:
+            for item in tags.json():
+                _add_semver(found, item.get("name") or "")
         rel = client.get(f"{_GITHUB}/repos/{repo}/releases/latest")
         if rel.status_code == 200:
-            tag = (rel.json().get("tag_name") or "").strip()
-            parsed = _semver(tag)
-            if parsed:
-                ver = "%d.%d.%d" % parsed
-                return ver, tag_for(ver)
-        tags = client.get(f"{_GITHUB}/repos/{repo}/tags", params={"per_page": 30})
-        tags.raise_for_status()
-        found: list[tuple[tuple[int, int, int], str]] = []
-        for item in tags.json():
-            parsed = _semver(item.get("name") or "")
-            if parsed:
-                found.append((parsed, "%d.%d.%d" % parsed))
+            _add_semver(found, (rel.json().get("tag_name") or "").strip())
         if not found:
+            tags.raise_for_status()
             return None, None
-        found.sort()
-        ver = found[-1][1]
-        return ver, tag_for(ver)
+    found.sort()
+    ver = found[-1][1]
+    return ver, tag_for(ver)
 
 
 def refresh_cache() -> None:
