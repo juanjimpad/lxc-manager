@@ -7,6 +7,7 @@ LXCMGR_PBS_STORAGES pins an explicit list."""
 import datetime as dt
 
 from ...core import config, db, proxmox
+from ...core.errors import GuestNotFound
 
 STALE_HOURS = 36
 
@@ -162,10 +163,28 @@ def get_evaluated(vmid: int) -> dict:
 
 def recent_runs(vmid: int, limit: int = 20) -> list:
     with db.get_conn() as conn:
-        return conn.execute(
+        rows = conn.execute(
             "SELECT * FROM backup_runs WHERE vmid=? ORDER BY id DESC LIMIT ?",
             (vmid, limit),
         ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_section(vmid: int) -> dict:
+    """Cached status + in-flight flag + recent on-demand runs."""
+    return {
+        "bk": get_evaluated(vmid),
+        "pending": is_pending(vmid),
+        "backup_runs": recent_runs(vmid),
+    }
+
+
+def start_backup(vmid: int) -> None:
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT 1 FROM guests WHERE vmid=?", (vmid,)).fetchone()
+    if row is None:
+        raise GuestNotFound()
+    begin_run(vmid)
 
 
 def run_backup_now(vmid: int) -> None:

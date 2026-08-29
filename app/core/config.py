@@ -27,6 +27,10 @@ else:
 TELEGRAM_TOKEN = os.environ.get("LXCMGR_TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("LXCMGR_TELEGRAM_CHAT_ID", "")
 
+# Optional machine-to-machine token for /api/v1 (Authorization: Bearer).
+# Empty = Bearer auth disabled; cookie sessions still work for the API.
+API_TOKEN = os.environ.get("LXCMGR_API_TOKEN", "").strip()
+
 # node name (as Proxmox reports it) -> host IP the agent SSH connects to
 NODE_HOSTS = {
     "lenovo-m700": os.environ.get("LXCMGR_HOST_M700", "192.168.1.8"),

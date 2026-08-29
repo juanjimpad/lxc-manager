@@ -1,8 +1,9 @@
+"""Security module HTML routes — thin adapter over modules.security.audit."""
 from fastapi import APIRouter, Depends, Request
 
-from ...core import auth
-from ...core.templates import templates
-from . import audit
+from ..core import auth
+from ..core.templates import templates
+from ..modules.security import audit
 
 router = APIRouter()
 

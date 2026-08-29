@@ -67,13 +67,86 @@ def seed_admin_if_empty() -> None:
         )
 
 
+def authenticate(username: str, password: str) -> bool:
+    """True if username/password match a row in `users`."""
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+    if row is None:
+        return False
+    return verify_password(password, row["password_hash"])
+
+
+def begin_session(request: Request, username: str) -> None:
+    """Rotate the session on login (new CSRF + user)."""
+    request.session.clear()
+    request.session["user"] = username
+    ensure_csrf(request)
+
+
+def change_password(username: str, current_password: str, new_password: str) -> str | None:
+    """Update `username`'s password. Returns a strings.py key on failure, else None."""
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        if row is None or not verify_password(current_password, row["password_hash"]):
+            return "wrong_current_password"
+        if len(new_password) < 12:
+            return "password_too_short"
+        if len(new_password) > MAX_PASSWORD_LEN:
+            return "password_too_long"
+        conn.execute(
+            "UPDATE users SET password_hash=? WHERE username=?",
+            (hash_password(new_password), username),
+        )
+    return None
+
+
 def current_user(request: Request) -> str | None:
     return request.session.get("user")
+
+
+def bearer_ok(request: Request) -> bool:
+    """True when Authorization: Bearer matches LXCMGR_API_TOKEN."""
+    expected = config.API_TOKEN
+    if not expected:
+        return False
+    header = request.headers.get("Authorization") or ""
+    if not header.startswith("Bearer "):
+        return False
+    offered = header[7:].strip()
+    if not offered:
+        return False
+    return hmac.compare_digest(offered, expected)
+
+
+def api_identity(request: Request) -> str | None:
+    """Session username, or 'api' for a valid Bearer token, or None."""
+    user = current_user(request)
+    if user:
+        return user
+    if bearer_ok(request):
+        return "api"
+    return None
 
 
 def require_login(request: Request):
     if current_user(request) is None:
         raise LoginRequired()
+
+
+def require_api_auth(request: Request) -> str:
+    """Cookie session or Bearer token. Raises HTTP 401 JSON, never a redirect."""
+    identity = api_identity(request)
+    if identity is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return identity
+
+
+def require_session_user(request: Request) -> str:
+    """A real logged-in username (not the Bearer 'api' identity)."""
+    user = current_user(request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
 
 
 class LoginRequired(Exception):

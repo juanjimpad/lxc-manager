@@ -22,16 +22,30 @@ something has to talk to the Proxmox host it lives on, not the API.
 
 ## Architecture
 
-Code segmented by module, each with its own FastAPI router:
+The HTML panel and the JSON API are two adapters over the same core.
+Neither owns the domain: routers only call module services and serialize.
 
-- **`app/core/`** — shared by every module: the Proxmox API client, SSH
-  transport to hosts/VMs, the SQLite schema and connection, login/session,
-  Telegram, the single Jinja2Templates instance, and the UI strings.
-- **`app/modules/update/`** — the original module. Discovers guests by
-  tag (`managed`) via the Proxmox API; weekly apt schedules are enabled
-  automatically only when the guest also has `auto-update`. For each
-  scheduled/manual run: safety snapshot → system packages → app update
-  (if the type allows it) → health check → Telegram notification.
+```
+Browser (Pico + htmx) ──HTML──► app/web/ ──┐
+                                          ├── modules/* services ──► app/core/
+Future app ────────────JSON──► app/api/ ──┘         │
+                                                    ├── SQLite
+                                                    ├── Proxmox API (httpx)
+                                                    └── SSH agent on each host
+```
+
+- **`app/core/`** — shared infrastructure: the Proxmox API client, SSH
+  transport to hosts/VMs, the SQLite schema and connection, login/session
+  (cookie or `Authorization: Bearer`), Telegram, the single Jinja2Templates
+  instance, and the UI strings. Domain errors (`GuestNotFound`, `InvalidCron`)
+  live here too.
+- **`app/modules/update/`**, **`security/`**, **`backups/`** — the original
+  modules. Each exposes **service functions** (no `Request`, no Jinja). The
+  update module discovers guests by tag (`managed`) via the Proxmox API;
+  weekly apt schedules are enabled automatically only when the guest also
+  has `auto-update`. For each scheduled/manual run: safety snapshot →
+  system packages → app update (if the type allows it) → health check →
+  Telegram notification.
 - **`app/modules/security/`** — audits SSH/fail2ban/sudo/ports per guest
   (Is SSH active? Does it allow username+password? Are keys loaded? Is
   `fail2ban` active? `PermitRootLogin`? Passwordless `sudo`? Listening
@@ -60,9 +74,13 @@ Code segmented by module, each with its own FastAPI router:
   `ostype` + `/etc/os-release` over SSH when configured). Package
   updates run only on Debian/Ubuntu (and all LXC); Windows skips the
   OS layer but still gets the backups.
-- **`app/main.py`** — deliberately thin: mounts static files, session,
-  the login/settings routes (cross-cutting, they don't belong to any
-  module), and includes each module's router.
+- **`app/web/`** — HTML adapter (Pico.css + htmx). Same URLs as before
+  (`/`, `/guest/{vmid}`, `/partials/...`). Fail2ban, bookmarks and the
+  templates do not change.
+- **`app/api/`** — JSON adapter mounted at `/api`. OpenAPI UI at `/api/docs`
+  (see [JSON API](#json-api) below).
+- **`app/main.py`** — mounts static files, session middleware, the web
+  router and the API sub-app; starts SQLite + the scheduler.
 - **`agent/lxc-manager-agent.sh`** — installed on **every Proxmox host**
   (not on the panel's LXC), as the target of a restricted `command=` in
   root's `authorized_keys`. The panel's SSH key never opens a shell: it
@@ -76,10 +94,52 @@ Code segmented by module, each with its own FastAPI router:
   `hashlib` (no new dependency). Seeds an admin user on first boot if the
   `users` table is empty (`LXCMGR_ADMIN_USER`/`LXCMGR_ADMIN_PASSWORD` from
   `.env`, or generated and printed once to the log if left blank).
-  Password change at `/settings`.
+  Password change at `/settings`. The JSON API accepts that same cookie
+  **or** `Authorization: Bearer` with `LXCMGR_API_TOKEN`.
 - **UI:** Pico.css (classless) + htmx — no Node.js, no build step. Both
   libraries vendored under `app/static/`. All UI copy lives in
   `app/core/strings.py`, kept out of the templates and route code.
+
+### JSON API
+
+Intended for a later host app (sidecar): this process still runs as
+uvicorn on port 8500; the other app talks HTTP. Importing the Python
+services as a library is possible but constrained (config is read from
+the environment at import, APScheduler is in-process, pending runs are
+in-memory) — the HTTP API is the supported integration path.
+
+Authenticate every `/api/v1` call except `POST /api/v1/login`:
+
+- Cookie session from `POST /api/v1/login` (or the HTML `/login`), or
+- `Authorization: Bearer <LXCMGR_API_TOKEN>` (optional; unset/empty
+  disables Bearer). CSRF applies to HTML form posts only.
+
+Unauthenticated API calls return **401 JSON**, never a redirect to `/login`.
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| POST | `/api/v1/login` | Session cookie |
+| POST | `/api/v1/logout` | Clear session |
+| GET | `/api/v1/me` | Current identity (`admin` or `api`) |
+| POST | `/api/v1/settings/password` | Change password (session user only) |
+| GET | `/api/v1/guests` | List + last run / security / backups |
+| POST | `/api/v1/guests/sync` | Rediscover from Proxmox |
+| GET | `/api/v1/guests/{vmid}` | Guest detail |
+| GET | `/api/v1/guests/{vmid}/kernel` | Live kernel string |
+| GET | `/api/v1/guests/{vmid}/runs` | Update history |
+| POST | `/api/v1/guests/{vmid}/runs` | Run now (202) |
+| PUT | `/api/v1/guests/{vmid}/schedule` | Cron + enabled |
+| GET | `/api/v1/guests/{vmid}/security` | Cached audit |
+| POST | `/api/v1/guests/{vmid}/security` | Check now |
+| GET | `/api/v1/guests/{vmid}/backups` | Cached PBS status + history |
+| POST | `/api/v1/guests/{vmid}/backups` | Back up now (202) |
+
+```
+curl -sS -H "Authorization: Bearer $LXCMGR_API_TOKEN" \
+  https://lxc-manager.example/api/v1/guests
+```
+
+Contract tests: `pip install -r tests/requirements.txt && pytest`.
 
 ## Installation
 
@@ -113,7 +173,8 @@ Code segmented by module, each with its own FastAPI router:
    ```
 5. Fill in `.env` (copied from `.env.example`) with the API URL, the
    token, each host's IP, an `LXCMGR_SESSION_SECRET` (`openssl rand
-   -hex 32`) and (optional) Telegram.
+   -hex 32`) and (optional) Telegram and `LXCMGR_API_TOKEN` for
+   machine-to-machine calls to `/api/v1`.
 6. Tag every guest to manage with `managed` (panel, backups, security).
    Add `auto-update` as well if it should join the weekly apt schedule:
    `pct set <vmid> --tags "managed;auto-update;<other-tags>"`.

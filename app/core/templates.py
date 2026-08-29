@@ -1,5 +1,5 @@
-"""Single Jinja2Templates instance, shared by main.py and every module's
-router — they all render against the same app/templates/."""
+"""Single Jinja2Templates instance, shared by every HTML adapter in
+app/web/ — they all render against the same app/templates/."""
 from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
