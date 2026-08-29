@@ -11,12 +11,14 @@
 <link rel="stylesheet" href="/static/pico.min.css">
 <link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
 <script src="/static/htmx.min.js"></script>
+<script src="/static/self-update.js?v={{ asset_v }}"></script>
 <style>
   pre { max-height: 24rem; overflow-y: auto; }
 </style>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container">
+  {% include "_nav.html" %}
   <p><a href="/">{{ t.back }}</a></p>
   <hgroup>
     <h1>{{ guest.name }} <small>({{ guest.vmid }})</small></h1>

@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 
 from ..core.version import APP_VERSION
-from . import auth, backups, guests, security
+from . import auth, backups, guests, security, selfupdate
 
 api = FastAPI(
     title="lxc-manager API",
@@ -18,3 +18,4 @@ api.include_router(auth.router, prefix="/v1", tags=["auth"])
 api.include_router(guests.router, prefix="/v1", tags=["guests"])
 api.include_router(security.router, prefix="/v1", tags=["security"])
 api.include_router(backups.router, prefix="/v1", tags=["backups"])
+api.include_router(selfupdate.router, prefix="/v1", tags=["self-update"])

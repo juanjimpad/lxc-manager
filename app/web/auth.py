@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..core import auth
 from ..core.strings import t
+from ..core.version import APP_VERSION
 from ..core.templates import templates
 
 router = APIRouter()
@@ -63,7 +64,12 @@ async def logout(request: Request, _csrf=Depends(auth.require_csrf)):
 @router.get("/settings")
 def settings_page(request: Request, _=Depends(auth.require_login)):
     return templates.TemplateResponse(
-        "settings.html", {"request": request, "user": auth.current_user(request)}
+        "settings.html",
+        {
+            "request": request,
+            "user": auth.current_user(request),
+            "app_version": APP_VERSION,
+        },
     )
 
 

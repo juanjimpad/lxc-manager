@@ -13,7 +13,9 @@ EnvironmentFile=/home/lxcmgr/lxc-manager/.env
 # Traefik...) — without this, the app (and any fail2ban jail on its
 # log) sees the proxy's IP, not the real client's. Set to the real IP.
 ExecStart=/home/lxcmgr/lxc-manager/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8500 --proxy-headers --forwarded-allow-ips=CHANGE_ME_PROXY_IP
-Restart=on-failure
+# Restart=always so a panel self-update (clean exit after swapping app/)
+# comes back. `systemctl stop` still stops it.
+Restart=always
 RestartSec=5
 NoNewPrivileges=true
 ProtectSystem=strict

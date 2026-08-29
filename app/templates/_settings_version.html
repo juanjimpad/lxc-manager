@@ -1,0 +1,10 @@
+<div id="settings-version">
+  <p>{{ t.settings_version }}: <strong>{{ current }}</strong>
+    {% if latest %} · {{ t.settings_latest }}: {{ latest }}{% endif %}
+    {% if not enabled %}
+      <span class="status-neutral">({{ t.self_update_disabled }})</span>
+    {% elif update_available %}
+      <span class="status-ok">{{ t.self_update_available }}</span>
+    {% endif %}
+  </p>
+</div>

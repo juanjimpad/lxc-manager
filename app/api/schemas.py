@@ -106,3 +106,12 @@ class BackupsSectionOut(BaseModel):
     backups: dict[str, Any]
     pending: bool
     runs: list[RunOut] = Field(default_factory=list)
+
+
+class VersionOut(BaseModel):
+    enabled: bool
+    current: str
+    latest: Optional[str] = None
+    update_available: bool
+    applying: bool = False
+    error: Optional[str] = None

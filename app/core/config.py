@@ -31,6 +31,15 @@ TELEGRAM_CHAT_ID = os.environ.get("LXCMGR_TELEGRAM_CHAT_ID", "")
 # Empty = Bearer auth disabled; cookie sessions still work for the API.
 API_TOKEN = os.environ.get("LXCMGR_API_TOKEN", "").strip()
 
+# Panel self-update (GitHub tags). 0/false/no disables check + apply.
+_SELF_UPDATE_RAW = os.environ.get("LXCMGR_SELF_UPDATE", "1").strip().lower()
+SELF_UPDATE_ENABLED = _SELF_UPDATE_RAW not in ("0", "false", "no")
+# owner/repo only — used to build API and archive URLs, never a free URL.
+UPDATE_REPO = os.environ.get("LXCMGR_UPDATE_REPO", "juanjimpad/lxc-manager").strip()
+# Directory that contains app/, requirements.txt, .venv, .env. Tests point
+# this at a temp tree so apply() cannot rewrite the checkout.
+INSTALL_ROOT = Path(os.environ.get("LXCMGR_INSTALL_ROOT", str(BASE_DIR)))
+
 # node name (as Proxmox reports it) -> host IP the agent SSH connects to
 NODE_HOSTS = {
     "lenovo-m700": os.environ.get("LXCMGR_HOST_M700", "192.168.1.8"),

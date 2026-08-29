@@ -1,0 +1,38 @@
+{% if applying %}
+<div id="self-update-banner" class="self-update-banner">
+  <span>{{ t.self_update_installing }}…</span>
+</div>
+{% elif error %}
+<div
+  id="self-update-banner"
+  class="self-update-banner"
+  hx-get="/partials/self-update"
+  hx-trigger="every 15m"
+  hx-swap="outerHTML">
+  <span class="status-failed">{{ t.self_update_error }}: {{ error }}</span>
+</div>
+{% elif update_available %}
+<div
+  id="self-update-banner"
+  class="self-update-banner"
+  hx-get="/partials/self-update"
+  hx-trigger="every 15m"
+  hx-swap="outerHTML">
+  <span>{{ t.self_update_available }} {{ current }} → {{ latest }}</span>
+  <button
+    type="button"
+    class="btn-md"
+    hx-post="/self-update"
+    hx-target="#self-update-banner"
+    hx-swap="outerHTML"
+    hx-confirm="{{ t.self_update_confirm }}"
+    hx-disabled-elt="this">{{ t.self_update_button }}</button>
+</div>
+{% else %}
+<div
+  id="self-update-banner"
+  class="self-update-banner-empty"
+  hx-get="/partials/self-update"
+  hx-trigger="every 15m"
+  hx-swap="outerHTML"></div>
+{% endif %}

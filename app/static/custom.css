@@ -356,3 +356,37 @@ button.btn-link {
 button.btn-link:hover {
   color: var(--pico-primary-hover);
 }
+
+nav a.nav-brand {
+  font-weight: 700;
+  color: var(--pico-h1-color);
+  text-decoration: none;
+}
+nav a.nav-brand:hover {
+  text-decoration: none;
+  color: var(--pico-primary);
+}
+
+.self-update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  background: #fff;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--pico-border-radius);
+  box-shadow: var(--pico-card-box-shadow);
+}
+.self-update-banner .btn-md {
+  margin: 0;
+}
+.self-update-banner-empty {
+  display: none;
+}

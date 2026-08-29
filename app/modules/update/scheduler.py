@@ -4,6 +4,7 @@ from apscheduler.triggers.cron import CronTrigger
 from ...core import config, db, proxmox
 from ..backups import status as backup_status
 from ..security import audit as security_audit
+from ..selfupdate import service as selfupdate
 from . import runner
 
 scheduler = BackgroundScheduler(timezone="Europe/Madrid")
@@ -122,6 +123,13 @@ def start() -> None:
         CronTrigger.from_crontab("0 3 * * 0", timezone="Europe/Madrid"),
         id="security-audit-weekly",
         replace_existing=True,
+    )
+    scheduler.add_job(
+        selfupdate.refresh_cache,
+        "interval",
+        hours=6,
+        id="selfupdate-check",
+        next_run_time=None,
     )
     sync_guests_and_schedules()  # first pass, synchronous, before starting
     scheduler.start()

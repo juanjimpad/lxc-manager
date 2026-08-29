@@ -11,14 +11,27 @@
 <link rel="stylesheet" href="/static/pico.min.css">
 <link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
 <script src="/static/htmx.min.js"></script>
+<script src="/static/self-update.js?v={{ asset_v }}"></script>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container" style="max-width: 24rem;">
-  <p><a href="/">{{ t.back }}</a></p>
+  {% include "_nav.html" %}
   <hgroup>
     <h1>{{ t.settings_title }}</h1>
     <p>{{ t.session_label }}: {{ user }}</p>
   </hgroup>
+
+  <h2>{{ t.settings_version }}</h2>
+  <div id="settings-version">
+    <p>{{ t.settings_version }}: <strong>{{ app_version }}</strong></p>
+  </div>
+  <button
+    type="button"
+    class="btn-md"
+    hx-post="/settings/check-update"
+    hx-target="#settings-version"
+    hx-swap="outerHTML"
+    hx-disabled-elt="this">{{ t.check_updates }}</button>
 
   <h2>{{ t.change_password_title }}</h2>
   <form hx-post="/settings/password" hx-target="#pw-feedback" hx-swap="innerHTML">
@@ -32,11 +45,6 @@
     <button type="submit" class="btn-md">{{ t.change_button }}</button>
   </form>
   <span id="pw-feedback"></span>
-
-  <form method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit" class="btn-link">{{ t.nav_logout }}</button>
-  </form>
 </main>
 </body>
 </html>

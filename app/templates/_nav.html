@@ -1,0 +1,19 @@
+<nav>
+  <ul>
+    <li><a href="/" class="nav-brand">{{ t.app_name }}</a></li>
+  </ul>
+  <ul>
+    <li><a href="/settings">{{ t.nav_settings }}</a></li>
+    <li>
+      <form method="post" action="/logout" style="display:inline;margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn-link">{{ t.nav_logout }}</button>
+      </form>
+    </li>
+  </ul>
+</nav>
+<div
+  id="self-update-banner"
+  hx-get="/partials/self-update"
+  hx-trigger="load, every 15m"
+  hx-swap="outerHTML"></div>

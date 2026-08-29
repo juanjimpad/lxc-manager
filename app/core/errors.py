@@ -7,3 +7,19 @@ class GuestNotFound(Exception):
 
 class InvalidCron(Exception):
     pass
+
+
+class SelfUpdateDisabled(Exception):
+    pass
+
+
+class SelfUpdateBusy(Exception):
+    pass
+
+
+class InvalidRelease(Exception):
+    pass
+
+
+class NotNewer(Exception):
+    pass

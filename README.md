@@ -4,7 +4,7 @@
 
 # lxc-manager
 
-[![Version](https://img.shields.io/badge/Version-1.0.3-informational)](https://github.com/juanjimpad/lxc-manager)
+[![Version](https://img.shields.io/badge/Version-1.1.0-informational)](https://github.com/juanjimpad/lxc-manager)
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-orange.svg)](./LICENSE)
 [![Built with Cursor Grok 4.5](https://img.shields.io/badge/Built%20with-Cursor%20Grok%204.5-000000)](https://cursor.com)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/juanjimpad)
@@ -74,6 +74,8 @@ Future app ────────────JSON──► app/api/ ──┘ 
   `ostype` + `/etc/os-release` over SSH when configured). Package
   updates run only on Debian/Ubuntu (and all LXC); Windows skips the
   OS layer but still gets the backups.
+- **`app/modules/selfupdate/`** — GitHub tag check + replace of the
+  panel's own `app/` tree (see [Updating the panel](#updating-the-panel)).
 - **`app/web/`** — HTML adapter (Pico.css + htmx). Same URLs as before
   (`/`, `/guest/{vmid}`, `/partials/...`). Fail2ban, bookmarks and the
   templates do not change.
@@ -133,6 +135,8 @@ Unauthenticated API calls return **401 JSON**, never a redirect to `/login`.
 | POST | `/api/v1/guests/{vmid}/security` | Check now |
 | GET | `/api/v1/guests/{vmid}/backups` | Cached PBS status + history |
 | POST | `/api/v1/guests/{vmid}/backups` | Back up now (202) |
+| GET | `/api/v1/version` | Panel current vs latest GitHub tag |
+| POST | `/api/v1/self-update` | Install latest tag and restart (202) |
 
 ```
 curl -sS -H "Authorization: Bearer $LXCMGR_API_TOKEN" \
@@ -180,6 +184,37 @@ Contract tests: `pip install -r tests/requirements.txt && pytest`.
    `pct set <vmid> --tags "managed;auto-update;<other-tags>"`.
 7. `systemctl start lxc-manager`.
 
+## Updating the panel
+
+Guest apt jobs are unrelated: this only replaces **this** program.
+
+The live install is a copy of `app/` + `requirements.txt`, not a git
+checkout. A newer **semver tag** (`v1.1.0`) on
+`github.com/juanjimpad/lxc-manager` shows a sticky bar (logged-in pages
+only). Confirm downloads that tag's tarball, **replaces the whole
+`app/` tree** (files removed in the new release disappear — it is not
+a merge), runs `pip install -r requirements.txt`, and exits. systemd
+`Restart=always` brings uvicorn back. `.env` and the SQLite DB are not
+touched.
+
+The host agent (`agent/lxc-manager-agent.sh` on each Proxmox node) and
+a changed systemd unit are **not** part of that apply — re-run
+`install.sh` as root when those change.
+
+`LXCMGR_SELF_UPDATE=0` hides the bar and rejects apply.
+`LXCMGR_UPDATE_REPO` defaults to `juanjimpad/lxc-manager` (must be
+`owner/name`).
+
+Releases: bump `APP_VERSION` in `app/core/version.py` **and** push a
+matching `vX.Y.Z` tag, or the bar never offers the build.
+
+First time this feature exists on a box that was installed as 1.0.x:
+copy/install 1.1.0 once by hand (`./install.sh` as root, which also
+picks up `Restart=always`). Later panel versions can use the bar.
+
+`GET /api/v1/version` and `POST /api/v1/self-update` are the same
+contract for a sidecar.
+
 `install.sh` already installs **fail2ban** (package + filter + jail,
 with a minimal `ignoreip` to start — `localhost` only) protecting
 `/login`. Two things to check afterwards, not automatable because they
@@ -203,6 +238,8 @@ depend on your network:
 - Updating Proxmox VE itself (the host).
 - A `config-check` action (reading specific config files) — fits the
   agent's action architecture, not implemented yet.
+- Pushing a new `lxc-manager-agent.sh` onto every Proxmox host from
+  the panel self-update bar.
 
 ## Security
 

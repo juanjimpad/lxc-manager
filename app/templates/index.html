@@ -11,21 +11,11 @@
 <link rel="stylesheet" href="/static/pico.min.css">
 <link rel="stylesheet" href="/static/custom.css?v={{ asset_v }}">
 <script src="/static/htmx.min.js"></script>
+<script src="/static/self-update.js?v={{ asset_v }}"></script>
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
 <main class="container">
-  <nav>
-    <ul></ul>
-    <ul>
-      <li><a href="/settings">{{ t.nav_settings }}</a></li>
-      <li>
-        <form method="post" action="/logout" style="display:inline;margin:0;">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button type="submit" class="btn-link">{{ t.nav_logout }}</button>
-        </form>
-      </li>
-    </ul>
-  </nav>
+  {% include "_nav.html" %}
   <div class="section-header">
     <hgroup>
       <h1>{{ t.app_name }}</h1>
