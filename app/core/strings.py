@@ -12,6 +12,8 @@ t = {
     "index_subtitle": "Guests tagged 'managed' (Proxmox API). Weekly updates need 'auto-update' too.",
     "refresh": "Refresh",
     "refreshing": "refreshing…",
+    "refresh_skipped_prefix": "Skipped (no 'managed' tag):",
+    "refresh_skipped_suffix": "Add the tag in Proxmox and Refresh again.",
     "col_vmid": "VMID",
     "col_name": "Name",
     "col_host": "Host",

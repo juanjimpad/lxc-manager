@@ -46,7 +46,7 @@ def list_guests(_user: str = Depends(auth.require_api_auth)):
 
 @router.post("/guests/sync", response_model=schemas.GuestListOut)
 def sync_guests(_user: str = Depends(auth.require_api_auth)):
-    guests, security, backups = service.sync_guests()
+    guests, security, backups, _skipped = service.sync_guests()
     out = []
     for g in guests:
         g = dict(g)

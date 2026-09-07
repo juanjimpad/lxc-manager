@@ -1,0 +1,11 @@
+{# Returned by POST /refresh: table + optional skip notice (OOB). #}
+{% include "_guests_table.html" %}
+<div id="refresh-notice" hx-swap-oob="true">
+  {% if skipped %}
+  <p class="refresh-notice">
+    {{ t.refresh_skipped_prefix }}
+    {% for g in skipped %}{{ g.vmid }} {{ g.name }}{% if not loop.last %}, {% endif %}{% endfor %}.
+    {{ t.refresh_skipped_suffix }}
+  </p>
+  {% endif %}
+</div>

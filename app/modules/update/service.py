@@ -59,9 +59,15 @@ def list_guests_with_status() -> tuple[list[dict], dict, dict]:
     return guests, security, backups
 
 
-def sync_guests() -> tuple[list[dict], dict, dict]:
+def sync_guests() -> tuple[list[dict], dict, dict, list[dict]]:
+    """Rediscover managed guests. Also returns cluster guests that lack
+    the `managed` tag so the Refresh UI can explain skips."""
+    from ...core import proxmox
+
     scheduler.sync_guests_and_schedules()
-    return list_guests_with_status()
+    guests, security, backups = list_guests_with_status()
+    skipped = proxmox.list_unmanaged_guests()
+    return guests, security, backups, skipped
 
 
 def get_guest_detail(vmid: int) -> dict | None:

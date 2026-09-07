@@ -88,14 +88,7 @@ def parse_tags(tags: str | None) -> list[str]:
     return [t.strip() for t in normalized.split(";") if t.strip()]
 
 
-def discover_guests() -> list[dict]:
-    """Cluster-wide guests tagged `managed`, with app_type and OS
-    classification already resolved. For Linux VMs listed in VM_GUESTS,
-    refines os_id via SSH (/etc/os-release) so apt only runs on
-    Debian/Ubuntu."""
-    # Imported lazily: agent imports config; keep proxmox usable alone.
-    from . import agent
-
+def _cluster_vms() -> list[dict]:
     r = httpx.get(
         f"{config.PVE_API_URL}/api2/json/cluster/resources",
         params={"type": "vm"},
@@ -104,8 +97,42 @@ def discover_guests() -> list[dict]:
         timeout=15,
     )
     r.raise_for_status()
+    return r.json()["data"]
+
+
+def list_unmanaged_guests() -> list[dict]:
+    """LXC/VMs visible in the cluster that lack the discovery tag.
+
+    Used after Refresh so the UI can explain why a new guest did not
+    appear — silent filtering felt like a broken button."""
     out = []
-    for item in r.json()["data"]:
+    for item in _cluster_vms():
+        if item.get("type") not in ("lxc", "qemu"):
+            continue
+        tag_list = parse_tags(item.get("tags") or "")
+        if config.REQUIRED_TAG in tag_list:
+            continue
+        out.append(
+            {
+                "vmid": item["vmid"],
+                "name": item.get("name", str(item["vmid"])),
+                "type": item["type"],
+                "node": item.get("node", ""),
+            }
+        )
+    return sorted(out, key=lambda g: g["vmid"])
+
+
+def discover_guests() -> list[dict]:
+    """Cluster-wide guests tagged `managed`, with app_type and OS
+    classification already resolved. For Linux VMs listed in VM_GUESTS,
+    refines os_id via SSH (/etc/os-release) so apt only runs on
+    Debian/Ubuntu."""
+    # Imported lazily: agent imports config; keep proxmox usable alone.
+    from . import agent
+
+    out = []
+    for item in _cluster_vms():
         tags = item.get("tags") or ""
         tag_list = parse_tags(tags)
         if config.REQUIRED_TAG not in tag_list:

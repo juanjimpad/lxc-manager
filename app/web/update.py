@@ -43,10 +43,16 @@ async def refresh_guests(
     _=Depends(auth.require_login),
     _csrf=Depends(auth.require_csrf),
 ):
-    guests, security, backups = service.sync_guests()
+    guests, security, backups, skipped = service.sync_guests()
     return templates.TemplateResponse(
-        "_guests_table.html",
-        {"request": request, "guests": guests, "security": security, "backups": backups},
+        "_refresh_result.html",
+        {
+            "request": request,
+            "guests": guests,
+            "security": security,
+            "backups": backups,
+            "skipped": skipped,
+        },
     )
 
 
