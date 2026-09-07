@@ -187,12 +187,16 @@ def start_backup(vmid: int) -> None:
     begin_run(vmid)
 
 
-def run_backup_now(vmid: int) -> None:
+def run_backup_now(vmid: int, notes: str = "lxc-manager on-demand backup") -> bool:
     """A real on-demand backup — not a status refresh. Runs vzdump
     sequentially against every discovered PBS storage (same list the
     status card shows), then PBS integrity verify of the latest
     snapshot on each storage, then sync_all() refreshes timestamps.
-    Each invocation is recorded in backup_runs (like update `runs`)."""
+    Each invocation is recorded in backup_runs (like update `runs`).
+
+    Returns True when the whole chain (vzdump + verify) succeeded.
+    Used by the Update module's optional pre-update backup so both
+    paths share one implementation and the Backups card stays current."""
     from ...core import agent as agent_mod
 
     _pending.add(vmid)
@@ -219,6 +223,7 @@ def run_backup_now(vmid: int) -> None:
     lines = [
         f"lxc-manager backup · {name} ({vmid})",
         f"storages: {', '.join(storages) if storages else '(none)'}",
+        f"notes: {notes}",
     ]
     status = "failed"
 
@@ -233,7 +238,7 @@ def run_backup_now(vmid: int) -> None:
                 guest["node"],
                 vmid,
                 timeout_s=900,
-                notes="lxc-manager on-demand backup",
+                notes=notes,
             ):
                 lines.append(f"vzdump → {storage}: {'ok' if ok else 'FAILED'}")
                 if not ok:
@@ -284,3 +289,4 @@ def run_backup_now(vmid: int) -> None:
                 (_now(), status, summary, detail, run_id),
             )
         _pending.discard(vmid)
+    return status == "ok"

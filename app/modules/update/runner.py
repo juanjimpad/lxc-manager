@@ -7,7 +7,8 @@ VMs; Windows and other OS families skip the OS layer.
 what is happening (backup can take a long time on large guests)."""
 import datetime as dt
 
-from ...core import agent, config, db, proxmox, telegram
+from ...core import agent, config, db, telegram
+from ..backups import status as backup_status
 
 # In-memory — single-process app. Set in the POST handler before the
 # background task is queued so the Update button disables immediately.
@@ -73,28 +74,30 @@ def _run_guest(vmid: int, with_backup: bool = True) -> None:
     _set_phase(run_id, "starting", lines)
 
     try:
-        # 1. optional safety backup on every PBS storage
+        # 1. optional safety backup — same path as Backups → "Back up now"
+        # so backup_runs + backup_status (and PBS verify) stay in sync.
         if with_backup:
-            storages = proxmox.list_pbs_storages()
-            if not storages:
-                lines.append("backup: no PBS storages discovered")
+            _set_phase(run_id, "backup (backups module)", lines)
+            backup_ok = backup_status.run_backup_now(
+                vmid, notes="lxc-manager pre-update snapshot"
+            )
+            with db.get_conn() as conn:
+                brow = conn.execute(
+                    """SELECT status, detail FROM backup_runs
+                       WHERE vmid=? ORDER BY id DESC LIMIT 1""",
+                    (vmid,),
+                ).fetchone()
+            if brow and brow["detail"]:
+                for line in brow["detail"].splitlines()[1:]:
+                    lines.append(line)
+            lines.append(
+                "backup: ok (recorded in backups module)"
+                if backup_ok
+                else "backup: FAILED (see backups history)"
+            )
+            if not backup_ok:
                 ok_overall = False
-                _set_phase(run_id, "backup: no storages", lines)
-            dump_results = []
-            for storage in storages:
-                _set_phase(run_id, f"backup → {storage}", lines)
-                upid = proxmox.trigger_snapshot(
-                    guest["node"],
-                    vmid,
-                    storage,
-                    notes="lxc-manager pre-update snapshot",
-                )
-                snap_ok = proxmox.wait_task(guest["node"], upid, timeout_s=900)
-                dump_results.append((storage, snap_ok))
-                lines.append(f"backup → {storage}: {'ok' if snap_ok else 'FAILED'}")
-                if not snap_ok:
-                    ok_overall = False
-                _set_phase(run_id, f"backup → {storage}: done", lines)
+            _set_phase(run_id, "backup done", lines)
         else:
             lines.append("backup: skipped (not requested)")
             _set_phase(run_id, "backup skipped", lines)
