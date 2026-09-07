@@ -52,7 +52,8 @@ TAG_APP_TYPE = {
     "proxy": "npm",
     "adblock": "adguard",
     "dashboard": "glance",
-    "network": "ddns",
+    # Specific — do not use broad tags like "network" (WireGuard/UPS share it).
+    "ddns": "ddns",
     "git": "gitea",
     "docker": "docker-host",
 }

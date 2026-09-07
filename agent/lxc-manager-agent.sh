@@ -39,7 +39,7 @@ for t in "${tag_arr[@]}"; do
     proxy)     app=npm; break ;;
     adblock)   app=adguard; break ;;
     dashboard) app=glance; break ;;
-    network)   app=ddns; break ;;
+    ddns)      app=ddns; break ;;
     git)       app=gitea; break ;;
     docker)    app=docker-host; break ;;
   esac
