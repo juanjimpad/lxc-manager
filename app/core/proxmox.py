@@ -2,6 +2,8 @@
 inventory and triggering an on-demand vzdump). The token's permissions
 are scoped to VM.Audit + VM.Backup — see the LxcManagerAPI role in
 Proxmox."""
+from __future__ import annotations
+
 import datetime as dt
 import re
 import time
@@ -75,6 +77,17 @@ def classify_os(guest_type: str, pve_ostype: str = None) -> dict:
     }
 
 
+def parse_tags(tags: str | None) -> list[str]:
+    """Normalize Proxmox guest tags to a clean list.
+
+    Cluster resources and `pct config` use `;`. The UI sometimes shows
+    commas; stray spaces around a tag must not hide `managed`."""
+    if not tags:
+        return []
+    normalized = tags.replace(",", ";")
+    return [t.strip() for t in normalized.split(";") if t.strip()]
+
+
 def discover_guests() -> list[dict]:
     """Cluster-wide guests tagged `managed`, with app_type and OS
     classification already resolved. For Linux VMs listed in VM_GUESTS,
@@ -93,8 +106,8 @@ def discover_guests() -> list[dict]:
     r.raise_for_status()
     out = []
     for item in r.json()["data"]:
-        tags = item.get("tags", "")
-        tag_list = [t for t in tags.split(";") if t]
+        tags = item.get("tags") or ""
+        tag_list = parse_tags(tags)
         if config.REQUIRED_TAG not in tag_list:
             continue
         app_type = "unknown"
@@ -132,7 +145,8 @@ def discover_guests() -> list[dict]:
                 "name": item.get("name", str(vmid)),
                 "type": guest_type,
                 "app_type": app_type,
-                "tags": tags,
+                # Canonical `;` form so schedule/agent checks stay consistent.
+                "tags": ";".join(tag_list),
                 "maxmem": item.get("maxmem", 0),
                 "maxcpu": item.get("maxcpu", 0),
                 "ip": ip,

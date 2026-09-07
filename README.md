@@ -64,7 +64,8 @@ Future app ────────────JSON──► app/api/ ──┘ 
   on the next sync with no code change. Flags a storage red if its last
   backup is older than 36h or PBS marked it as failed verification (a
   backup that's simply never been verified is neutral, not a failure).
-  Refreshed automatically every hour and manually via "Back up now" —
+  Refreshed automatically every 6 hours (with discovery + security) and
+  manually via Refresh / "Back up now" —
   which triggers a *real* on-demand `vzdump` to **every** discovered
   PBS storage (sequentially), then a **PBS integrity verify** of the
   latest snapshot on each storage (agent action `pbs-verify`), then

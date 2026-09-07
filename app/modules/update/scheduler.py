@@ -19,6 +19,10 @@ DEFAULT_CRON_BY_NODE = {
     "lenovo-m700": "0 6 * * 6",
 }
 
+# Same work as the UI Refresh button (discover + PBS status), plus the
+# security audits each guest page can run with "Check now".
+PANEL_REFRESH_HOURS = 6
+
 
 def _job_id(vmid: int) -> str:
     return f"guest-{vmid}"
@@ -52,8 +56,8 @@ def sync_guests_and_schedules() -> None:
     (guests must exist in the DB first — backup_status.sync_all() reads
     the vmid list from there). Guests that vanished from Proxmox (or lost
     the required tag) are pruned from SQLite — refresh used to only
-    upsert, so destroyed guests lingered forever. Called on startup and
-    every hour."""
+    upsert, so destroyed guests lingered forever. Called on startup, from
+    the UI Refresh button, and by panel_refresh every PANEL_REFRESH_HOURS."""
     guests = proxmox.discover_guests()
     seen = {g["vmid"] for g in guests}
     with db.get_conn() as conn:
@@ -81,7 +85,7 @@ def sync_guests_and_schedules() -> None:
                 default_cron = DEFAULT_CRON_BY_NODE.get(g["node"], "0 5 * * 6")
                 # Weekly apt only if Proxmox also has auto-update; managed
                 # alone is enough for panel / backups / security.
-                tag_list = [t for t in (g["tags"] or "").split(";") if t]
+                tag_list = proxmox.parse_tags(g["tags"])
                 enabled = 1 if config.AUTO_UPDATE_TAG in tag_list else 0
                 conn.execute(
                     "INSERT INTO schedules (vmid, cron, enabled) VALUES (?, ?, ?)",
@@ -96,6 +100,17 @@ def sync_guests_and_schedules() -> None:
             _prune_stale_guest(conn, vmid)
     reload_jobs()
     backup_status.sync_all()
+
+
+def panel_refresh() -> None:
+    """Periodic counterpart of the UI Refresh button, plus security audits.
+
+    Discovery alone used to be scheduled with next_run_time=None, which
+    APScheduler treats as a paused job — so after startup the panel never
+    rediscovered guests or refreshed PBS/security until someone clicked
+    Refresh. This job must keep a real next_run_time."""
+    sync_guests_and_schedules()
+    security_audit.audit_all_guests()
 
 
 def reload_jobs() -> None:
@@ -115,15 +130,14 @@ def reload_jobs() -> None:
 
 
 def start() -> None:
+    # Do NOT pass next_run_time=None — that pauses the job forever in
+    # APScheduler 3.x (only startup + manual Refresh would ever sync).
     scheduler.add_job(
-        sync_guests_and_schedules, "interval", hours=1, id="discovery", next_run_time=None
-    )
-    # weekly security sweep, Sundays — doesn't collide with Saturday's
-    # updates/snapshots. Also available on demand from each guest page.
-    scheduler.add_job(
-        security_audit.audit_all_guests,
-        CronTrigger.from_crontab("0 3 * * 0", timezone="Europe/Madrid"),
-        id="security-audit-weekly",
+        panel_refresh,
+        "interval",
+        hours=PANEL_REFRESH_HOURS,
+        id="panel-refresh",
+        next_run_time=datetime.now(scheduler.timezone) + timedelta(minutes=2),
         replace_existing=True,
     )
     scheduler.add_job(
