@@ -237,6 +237,23 @@ mark {
 #security-checking.htmx-request {
   display: block;
 }
+.run-progress {
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  color: #1a4a8a;
+  background: #eaf2ff;
+  border: 1px solid #c5d8f7;
+  border-radius: 6px;
+}
+.update-backup-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+}
 .refresh-notice {
   margin: 0.4rem 0 0.8rem;
   padding: 0.55rem 0.75rem;

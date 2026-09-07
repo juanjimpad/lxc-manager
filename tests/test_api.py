@@ -109,7 +109,18 @@ def test_start_update_run(client, auth_header, guest):
         r = client.post("/api/v1/guests/100/runs", headers=auth_header)
     assert r.status_code == 202
     assert r.json()["status"] == "started"
-    run.assert_called_once_with(100)
+    run.assert_called_once_with(100, False)
+
+
+def test_start_update_with_backup(client, auth_header, guest):
+    with patch("app.api.guests.runner.run_guest") as run:
+        r = client.post(
+            "/api/v1/guests/100/runs",
+            headers=auth_header,
+            params={"with_backup": "true"},
+        )
+    assert r.status_code == 202
+    run.assert_called_once_with(100, True)
 
 
 def test_start_update_missing_guest(client, auth_header):

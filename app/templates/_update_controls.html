@@ -3,12 +3,13 @@
 <div
   id="update-controls"
   hx-get="/partials/guest/{{ vmid }}/update-controls"
-  hx-trigger="{{ 'every 3s' if running else 'runStarted from:body' }}"
+  hx-trigger="{{ 'every 2s' if running else 'runStarted from:body' }}"
   hx-swap="outerHTML">
   <div class="section-header">
     <h2>{{ t.section_update }}</h2>
     <button
       hx-post="/guest/{{ vmid }}/run"
+      hx-include="#with-backup-{{ vmid }}"
       hx-target="#run-feedback"
       hx-swap="innerHTML"
       hx-disabled-elt="this"
@@ -19,6 +20,15 @@
       {{ t.icon_run }}
     </button>
   </div>
+  <label class="switch-label update-backup-opt" {% if running %}style="opacity:0.6"{% endif %}>
+    <input
+      type="checkbox"
+      name="with_backup"
+      id="with-backup-{{ vmid }}"
+      value="1"
+      {% if running %}disabled{% endif %}>
+    {{ t.backup_before_update }}
+  </label>
   <div class="stat-row">
     <span class="stat-label">{{ t.last_run }}</span>
     {% if runs %}
@@ -29,11 +39,17 @@
       <span>{{ t.status_never }}</span>
     {% endif %}
   </div>
+  {% if running %}
+    <p class="run-progress" id="run-progress">
+      {{ t.run_now_working }}:
+      <strong>{{ phase or t.status_running }}</strong>
+    </p>
+  {% endif %}
   {% if not update_supported %}
     <p class="status-neutral" style="font-size:0.85rem;margin:0.35rem 0 0;">
       {% if os_family == 'windows' %}{{ t.os_updates_disabled_windows }}
       {% else %}{{ t.os_updates_disabled }} ({{ os_id }}){% endif %}
-      — backups still run on every PBS storage.
+      — backups still run when “{{ t.backup_before_update }}” is on.
     </p>
   {% endif %}
   <span id="run-feedback"></span>

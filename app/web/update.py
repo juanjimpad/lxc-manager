@@ -104,6 +104,7 @@ def partial_update_controls(request: Request, vmid: int, _=Depends(auth.require_
             "vmid": vmid,
             "runs": [],
             "running": False,
+            "phase": None,
             "update_supported": False,
             "os_family": "unknown",
             "os_id": "unknown",
@@ -118,6 +119,7 @@ def partial_update_controls(request: Request, vmid: int, _=Depends(auth.require_
 async def guest_run_now(
     vmid: int,
     background_tasks: BackgroundTasks,
+    with_backup: bool = Form(False),
     _=Depends(auth.require_login),
     _csrf=Depends(auth.require_csrf),
 ):
@@ -128,7 +130,7 @@ async def guest_run_now(
             content=f'<span class="status-failed">{html.escape(t["unknown"])}</span>',
             status_code=404,
         )
-    background_tasks.add_task(runner.run_guest, vmid)
+    background_tasks.add_task(runner.run_guest, vmid, with_backup)
     return HTMLResponse(
         content=f'<span class="status-ok">{html.escape(t["run_launched"])}</span>',
         headers={"HX-Trigger": "runStarted"},

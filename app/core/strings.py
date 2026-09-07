@@ -88,6 +88,8 @@ t = {
     "check_ports": "ports",
     "run_now": "Run now",
     "run_launched": "Launched — check the history in a few seconds.",
+    "run_now_working": "Working",
+    "backup_before_update": "Backup before update",
     "last_run": "Last run",
     "next_scheduled": "Next scheduled",
     "cron_placeholder": "0 4 * * 6",

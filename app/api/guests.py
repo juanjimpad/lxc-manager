@@ -102,13 +102,14 @@ def guest_runs(vmid: int, _user: str = Depends(auth.require_api_auth)):
 def guest_run_now(
     vmid: int,
     background_tasks: BackgroundTasks,
+    with_backup: bool = False,
     _user: str = Depends(auth.require_api_auth),
 ):
     try:
         service.start_update(vmid)
     except GuestNotFound:
         raise HTTPException(status_code=404, detail="Guest not found") from None
-    background_tasks.add_task(runner.run_guest, vmid)
+    background_tasks.add_task(runner.run_guest, vmid, with_backup)
     return schemas.StatusOut(status="started", vmid=vmid)
 
 

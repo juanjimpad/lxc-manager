@@ -102,10 +102,14 @@ def get_update_controls(vmid: int) -> dict | None:
         return None
     runs = list_runs(vmid)
     running = runner.is_pending(vmid) or (bool(runs) and runs[0]["status"] == "running")
+    phase = None
+    if runs and runs[0]["status"] == "running":
+        phase = runs[0].get("phase") or "running"
     return {
         "vmid": vmid,
         "runs": runs,
         "running": running,
+        "phase": phase,
         "update_supported": bool(guest["update_supported"]),
         "os_family": guest["os_family"],
         "os_id": guest["os_id"],

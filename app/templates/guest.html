@@ -50,6 +50,7 @@
 
   <article>
     {% set running = runner_pending or (runs and runs[0].status == 'running') %}
+    {% set phase = (runs[0].phase if running and runs and runs[0].phase else None) %}
     {% set update_supported = guest.update_supported %}
     {% set os_family = guest.os_family %}
     {% set os_id = guest.os_id %}

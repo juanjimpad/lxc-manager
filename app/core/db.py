@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS runs (
     status TEXT NOT NULL,        -- running | ok | failed
     summary TEXT,
     detail TEXT,
+    phase TEXT,                  -- live step while status=running
     FOREIGN KEY (vmid) REFERENCES guests(vmid)
 );
 
@@ -112,6 +113,7 @@ MIGRATIONS = [
     "ALTER TABLE guests ADD COLUMN os_family TEXT NOT NULL DEFAULT 'unknown'",
     "ALTER TABLE guests ADD COLUMN os_id TEXT NOT NULL DEFAULT 'unknown'",
     "ALTER TABLE guests ADD COLUMN update_supported INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE runs ADD COLUMN phase TEXT",
 ]
 
 

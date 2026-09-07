@@ -52,6 +52,7 @@ class RunOut(BaseModel):
     status: str
     summary: Optional[str] = None
     detail: Optional[str] = None
+    phase: Optional[str] = None
 
 
 class GuestOut(BaseModel):
