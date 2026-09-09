@@ -1,0 +1,17 @@
+{
+  "name": "lxc-manager",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "uvicorn",
+      "command": "set -a && source .env && set +a && exec .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8500",
+      "description": "lxc-manager FastAPI panel (HTML at /, JSON API at /api/v1) on port 8500."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 8500
+    }
+  ]
+}
